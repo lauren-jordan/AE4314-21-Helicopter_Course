@@ -152,7 +152,7 @@ for i in np.arange(0, len(psi)):
 if AOA_graph:
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 8))
 
-    contour = ax.contourf(psi, r_var, AOA_f.T, levels=10, cmap='plasma')
+    contour = ax.contourf(psi, r_var, AOA_f.T, levels=10, cmap='inferno')
 
     fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
     ax.set_title('Contours of Constant Angle of Attack')
