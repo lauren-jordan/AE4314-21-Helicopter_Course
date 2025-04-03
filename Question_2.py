@@ -27,7 +27,7 @@ AOA_graph = True
 #-------------------------- QUESTION 2 Flapping -------------------------
 # STANDARD PARAMETERS
 rho = 1.225  # Density at sea level (kg/m^3)
-cla = 2*np.pi  # lift curve slope [1/deg]
+cla = 2*np.pi  # lift curve slope [1/rad]
 g = 9.81 # m/s^2 gravitational acceleration
 mass = 4536 # kg mass of the helicopter MTOW
 W = mass * g # N helicopter weight

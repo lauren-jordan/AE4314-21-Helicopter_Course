@@ -1,18 +1,79 @@
+clc; clear; close all;
 
-rho = 1.225;  % Air density at sea level 
-R = 7.32;  % BladeRadius [m]
-vtip = 292 * 2 * np.pi / 60 * R;  % Tip velocity [m/s]   
-c = 0.53;  % Chord [m]
-N = 4;  % Number of blades
-solidity = N * c / (np.pi * R);
-liftCurve = 2 * np.pi; % Approximation according to thin airfoil theory
-CD = 0.3;  % Fuselage Drag Coefficient  
-m = 9525; % Mass [kg]
-S = 3.9; % Frontal area [m^2]
-g = 9.80665; % Acc. due to gravity [m/s]
-W = m*g; % Weight [N]
-area = pi*R^2; % Area [m^2]
+%-------------------------- STANDARD PARAMETERS -------------------------
+Vmax = 170 * 0.5144; % m/s max velocity
+rho = 1.225;  % Density at sea level (kg/m^3)
+cla = 2 * pi;  % Lift curve slope [1/rad]
+g = 9.81; % m/s^2 gravitational acceleration
+mass = 4536; % kg mass of the helicopter MTOW
+W = mass * g; % N helicopter weight
+diam = 13.41; % m Rotor diameter
+R = diam / 2; % m Rotor radius 
+c = 0.76; % m chord length
+rotor_RPM = 324;
+rotor_speed = rotor_RPM * 2 * pi / 60;  % rad/s angular rotor speed
+N = 2; % Number of blades
 
-% Speed range 
-Vmax = 293; % 180.1*0.51444
-V = 
+% Physical quantities of the helicopter
+fus_width = 0.99; % m
+fus_length = 13.77; % m
+fus_height = 3.11; % m
+wings_width = 3.56 - 0.99; % m
+wings_thickness = 0.1; % m
+
+tail_distance = 7.901; % m, estimated based on a picture from Vertipedia
+
+% Compute fuselage drag coefficient
+Ld = fus_length / fus_width;
+FF = 1 + 2.2 / (Ld * 1.5)^1.5 + 3.8 / (Ld)^3; % Form factor
+Re = 1e6; % Reynolds number
+Cf = (1 / (3.46 * log10(Re) - 5.6))^2; % Skin friction coefficient
+Wet_area = (fus_length * fus_width + fus_height * fus_length + fus_height * fus_width) * 2 * 2/3;
+Fus_area = fus_width * fus_height + wings_width * wings_thickness;
+Cdf = Cf * FF * Wet_area / Fus_area;
+S = Wet_area;
+
+% Blade solidity
+sigma = N * c / (pi * R);
+
+%------------------- QUESTION 3 TRIMMING ---------------------
+V = 0:1:Vmax; % m/s velocity
+num_V = length(V);
+
+% Initialize arrays
+a1 = zeros(1, num_V);
+theta0 = zeros(1, num_V);
+
+for i = 1:num_V
+    mu = V(i) / (rotor_speed * R);
+    D = 0.5 * rho * V(i)^2 * S * Cdf; % Drag force (N)
+    
+    CT1 = sqrt(W^2 + D^2) / (rho * (rotor_speed * R)^2 * pi * R^2);
+    
+    % Solve for lambda_i using fsolve
+    lambda_i_guess = 0.05;
+    func = @(lambda_i) CT1 - 2 * lambda_i * sqrt((V(i) / (rotor_speed * R))^2 + (V(i) * (D/W) / (rotor_speed * R) + lambda_i)^2);
+    lambda_i = fzero(func, lambda_i_guess);
+    
+    % Solve system of equations
+    A = [1 + (3/2) * mu^2, -(8/3) * mu;
+         -mu, 1 + (2/3) * mu^2];
+    
+    B = [-2 * mu * lambda_i - 2 * mu^2 * (D/W);
+          mu * (D/W) + lambda_i + 4 * CT1 / (cla * sigma)];
+    
+    X = A \ B; % Solve for a1 and theta0
+    
+    a1(i) = X(1) * 180 / pi; % Convert to degrees
+    theta0(i) = X(2) * 180 / pi; % Convert to degrees
+end
+
+% Plot results
+figure;
+plot(V, a1, 'r', 'LineWidth', 1.5); hold on;
+plot(V, theta0, 'b', 'LineWidth', 1.5);
+grid on;
+legend('Cyclic input', 'Collective input');
+xlabel('Velocity (m/s)');
+ylabel('Pitch Angle (°)');
+title('Cyclic and Collective Pitch vs Velocity');
