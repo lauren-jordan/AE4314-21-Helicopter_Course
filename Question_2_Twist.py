@@ -13,10 +13,9 @@ def flap_angle(a0, a1, b1, psi):
     return beta, dbeta
 
 def AOA(pitch, lambda_i, dbeta, r, omega, q, p, psi):
-
     # Angle of attack calculation
     den = r
-    num = (lambda_i + (dbeta*r) - (q/omega)*r*np.cos(psi)- (p/omega)*r*np.sin(psi))
+    num = lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) - (p/omega)*r*np.sin(psi)
     alpha = pitch - num/den
     return alpha 
 
@@ -24,6 +23,7 @@ def AOA(pitch, lambda_i, dbeta, r, omega, q, p, psi):
 flap_graph = True
 
 twisty = False # True for twisty blade, False for straight blade
+
 #-------------------------- QUESTION 2 Flapping -------------------------
 # STANDARD PARAMETERS
 rho = 1.225  # Density at sea level (kg/m^3)
@@ -35,20 +35,9 @@ diam = 13.41 # m Rotor diameter
 R = diam/2 # m Rotor radius 
 c = 0.76 # m chord length
 rotor_RPM = 324 
-rotor_speed = -rotor_RPM * 2 * np.pi/60  # rad/s angular rotor speed
+rotor_speed = rotor_RPM * 2 * np.pi/60  # rad/s angular rotor speed
 N = 2 # Number of blades
 t =  0.097 # m blade thickness
-FM = 0.76
-cds = 2.415
-k = 1.15
-
-#### TAIL ROTOR PARAMETERS
-D_tail = 2.59 # m tail rotor diameter
-Rt = D_tail/2 # m tail rotor radius
-ct = 0.30 # m tail rotor chord
-kt = 1.4
-Omega_tail = 1654 # RPM tail rotor
-rotor_speed_t = Omega_tail * 2 * np.pi / 60
 
 # Moment of Inertia (Iy)
 h_blade_max = 0.097 # maximum thickness of the blade % of chord
@@ -84,7 +73,7 @@ longcyc = 2*np.pi / 180  # Longitudinal cyclic (radians)
 latcyc = 1*np.pi / 180  # Lateral cyclic (radians)
 V = 0 # m/s
 q = 20*np.pi/180 # rad/s
-p = 10*np.pi/180 # rad/s
+p = 0*np.pi/180 # rad/s
 
 if twisty:
     twist = -0.175 # radians
@@ -97,13 +86,11 @@ lambda_i = vi/(rotor_speed*R)
 
 # Fourier coefficients 
 
-a0 = (gamma/8)*(collect - (4/3)*(lambda_i) -(4/5)*twist) 
+a0 = (gamma/8)*(collect - (4/3)*(lambda_i) - (4/5)*twist) 
 
-a1 = (-16*q/(gamma*rotor_speed)+ latcyc + p/rotor_speed)
+a1 = (-16*q/(gamma*rotor_speed) - latcyc + p/rotor_speed)
 
-b1 = -16*p/(rotor_speed*gamma) - longcyc - q/rotor_speed
-
-b1 = b1
+b1 = (-16*p/(rotor_speed*gamma) - longcyc - q/rotor_speed)
 
 print("Coning angle:")
 print("a0-a1: ", np.round((a0-a1)*180/np.pi,3))
@@ -132,17 +119,30 @@ if flap_graph:
 #-------------------------- AOA -------------------------
 r_var = np.linspace(0, R, 50) # m
 
-AOA_f = np.zeros((len(psi), len(r_var))) # Initialize beta_f array
+AOA_f = np.zeros((len(psi), len(r_var))) #  AOA degrees
 
 for i in np.arange(0, len(psi)): 
+
     for r in np.arange(0, len(r_var)):
+
         if r_var[r] <= 1.3:
             AOA_f[i, r] = np.NaN 
         else:
             #pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi
-            pitch = collect + longcyc*np.cos(psi[i]) + latcyc*np.sin(psi[i]) - twist*(r_var[r]/R) # radians
+                # Pitch angle 
+            pitch = collect + longcyc*np.cos(psi[i]) - latcyc*np.sin(psi[i]) - twist*(r_var[r]/R)
             AOA1 = AOA(pitch, lambda_i, dbeta_f[i], r_var[r]/R, rotor_speed, q, p, psi[i])
             
             AOA_f[i, r] = AOA1*180/np.pi 
 
+fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 8))
 
+# colours : magma, viridis, plasma, inferno, cividis
+contour = ax.contourf(psi, r_var, AOA_f.T, levels=20, cmap='plasma')
+
+fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
+ax.set_title('Contours of Constant Angle of Attack')
+
+ax.set_theta_zero_location('S')
+
+plt.show()

@@ -2,12 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Question_12_Forward import vi_BEM, Fuselage_drag_coeff
 from Question_12_13_Hover import induced_hover
+#--------------------------------------------------------------
+#CONVENTION 
+# Counterclockwise positive 
+# Cyclic is positive downwards and to the right 
+#--------------------------------------------------------------
 
 def flap_angle(a0, a1, b1, psi):
 
     # Flapping angle
     beta = a0 - a1*np.cos(psi) - b1*np.sin(psi)
-    dbeta = a1*np.sin(psi) - b1*np.cos(psi)
+    dbeta = (a1*np.sin(psi) - b1*np.cos(psi))
     ddbeta = a1*np.cos(psi) + b1*np.sin(psi)
   
     return beta, dbeta
@@ -16,12 +21,13 @@ def AOA(pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi):
 
     # Angle of attack calculation
     den = r+mu*np.sin(psi) 
-    num = (lambda_c + lambda_i + (dbeta*r) - (q/omega)*r*np.cos(psi) + mu*beta*np.cos(psi) - (p/omega)*r*np.sin(psi))
+    num = lambda_c + lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + mu*beta*np.cos(psi) - (p/omega)*r*np.sin(psi)
+
     alpha = pitch - num/den
     return alpha 
 
 #-------------------------- QUESTION 2 Graphs -------------------------
-flap_graph = False
+flap_graph = True
 
 AOA_graph = True
 #-------------------------- QUESTION 2 Flapping -------------------------
@@ -35,20 +41,8 @@ diam = 13.41 # m Rotor diameter
 R = diam/2 # m Rotor radius 
 c = 0.76 # m chord length
 rotor_RPM = 324 
-rotor_speed = -rotor_RPM * 2 * np.pi/60  # rad/s angular rotor speed
+rotor_speed = rotor_RPM * 2 * np.pi/60  # rad/s angular rotor speed
 N = 2 # Number of blades
-t =  0.097 # m blade thickness
-FM = 0.76
-cds = 2.415
-k = 1.15
-
-#### TAIL ROTOR PARAMETERS
-D_tail = 2.59 # m tail rotor diameter
-Rt = D_tail/2 # m tail rotor radius
-ct = 0.30 # m tail rotor chord
-kt = 1.4
-Omega_tail = 1654 # RPM tail rotor
-rotor_speed_t = Omega_tail * 2 * np.pi / 60
 
 # Moment of Inertia (Iy)
 h_blade_max = 0.097 # maximum thickness of the blade % of chord
@@ -98,19 +92,19 @@ K = (1.33*abs((mu/(lambda_c+lambda_i))))/(1.2 + abs((mu/(lambda_c+lambda_i))))
 
 ch = K*lambda_i/(1+0.5*mu**2)
 
-a0 = (gamma/8)*(collect*(1+mu**2) - (4/3)*(lambda_i+lambda_c) + 2*mu*p/(3*rotor_speed) + (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
+a0 = (gamma/8)*(collect*(1+mu**2) - (4/3)*(lambda_i+lambda_c) + 2*mu*p/(3*rotor_speed) - (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
 
-a1 = (-16*q/(gamma*rotor_speed)+ latcyc*(1+(mu**2)) + 8*collect*mu/3 - 2*mu*(lambda_i+lambda_c) + p/rotor_speed)/(1-(mu**2)/2)#((-16*q/(gamma*rotor_speed))+(-latcyc*(1+(3/2)*mu**2) \+ 8*collect*mu/3 + 2*mu*(lambda_i+lambda_c) - p/rotor_speed))/(1-((mu**2)/2))
+a1 = (-16*q/(gamma*rotor_speed) - latcyc*(1+mu**2) + (8/3)*collect*mu - 2*mu*(lambda_i+lambda_c) + p/rotor_speed)/(1-(0.5*mu**2))
 
-b1 = (-16*p/(rotor_speed*gamma) - longcyc*(1 + (mu**2)) - q/rotor_speed + (4/3)*mu*a0)/(1+(mu**2)/2) #(-16*p/(rotor_speed*gamma) + (longcyc*(1 + (1/2)*mu**2) + q/rotor_speed) + (4/3)*mu*a0)/(1+((mu**2)/2))
+b1 = (-16*p/(rotor_speed*gamma) - longcyc*(1 + (mu**2)) - q/rotor_speed + (4/3)*mu*a0)/(1+(0.5*mu**2)) 
 
-b1 = b1 + ch
+b1 = b1 + ch 
 
 print("a0: ", np.round(a0*180/np.pi,3))
 print("a1: ", np.round(a1*180/np.pi, 3))
 print("b1: ", np.round(b1*180/np.pi, 3))
-#-------------------------- Flapping angle -------------------------
 
+#-------------------------- Flapping angle -------------------------
 psi = np.linspace(0, 2*np.pi, 360) # radians
 
 beta_f = [] # radians
@@ -137,27 +131,27 @@ AOA_f = np.zeros((len(psi), len(r_var))) #  AOA degrees
 for i in np.arange(0, len(psi)): 
 
     # Pitch angle 
-    pitch = collect + longcyc*np.cos(psi[i]) + latcyc*np.sin(psi[i])
+    pitch = collect + longcyc*np.cos(psi[i]) - latcyc*np.sin(psi[i])
 
     for r in np.arange(0, len(r_var)):
         if r_var[r] <= 1.3:
             AOA_f[i, r] = np.NaN 
         else:
             #pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi
-            
             AOA1 = AOA(pitch, lambda_c, lambda_i, dbeta_f[i], r_var[r]/R, rotor_speed, q, p, mu, beta_f[i], psi[i])
             
             AOA_f[i, r] = AOA1*180/np.pi 
 
 if AOA_graph:
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 8))
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
 
-    contour = ax.contourf(psi, r_var, AOA_f.T, levels=10, cmap='inferno')
+    # colours : magma, viridis, plasma, inferno, cividis
+    contour = ax.contourf(psi, r_var, AOA_f.T, levels=20, cmap='plasma')
 
     fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
     ax.set_title('Contours of Constant Angle of Attack')
-    ax.set_theta_zero_location('N')  # 0° at top
-    ax.set_theta_direction(1)  
+
+    ax.set_theta_zero_location('S')
 
     plt.show()
 
