@@ -12,7 +12,7 @@ def flap_angle(a0, a1, b1, psi):
 
     # Flapping angle
     beta = a0 - a1*np.cos(psi) - b1*np.sin(psi)
-    dbeta = (a1*np.sin(psi) - b1*np.cos(psi))
+    dbeta = a1*np.sin(psi) - b1*np.cos(psi)
     ddbeta = a1*np.cos(psi) + b1*np.sin(psi)
   
     return beta, dbeta
@@ -79,7 +79,7 @@ latcyc = 1*np.pi / 180  # Lateral cyclic (radians)
 V = 20 # m/s
 q = 20*np.pi/180 # rad/s
 p = 10*np.pi/180 # rad/s
-alphac = longcyc #10*np.pi/180 # Angle of attack of the control plane 
+alphac = 1*np.pi/180#longcyc #10*np.pi/180 # Angle of attack of the control plane 
 mu = V*np.cos(alphac)/(rotor_speed*R)
 
 _, vibar, _, _ = vi_BEM(V, rho, W, R, Cdf, S) # Normalised induced velocity
