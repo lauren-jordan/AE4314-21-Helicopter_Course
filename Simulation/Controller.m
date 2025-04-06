@@ -22,7 +22,7 @@ longit(1)=0*pi/180; % (rad) Longitudinal cyclic pitch angle
 [Cdf, S] = fuselage_dragS();
 
 % ---------------------------------Parameters------------------------------------
-%Initial values;
+%Trim settings;
 t0=0; %(sec) Setting initial time 
 u0=90*0.51444; %(m/sec) Setting initial helicopter airspeed component along body x-axis 
 w0=0; %(m/sec) Setting initial helicopter airspeed component along body z-axis
@@ -30,7 +30,7 @@ q0=0; %(rad/sec) Setting initial helicopter pitch rate
 pitch0=0*pi/180; %(rad) Setting initial helicopter pitch angle
 x0=0; %(m) Setting initial helicopter longitudinal position 
 V0 = sqrt(u0^2 + w0^2);
-labi0=lambda_i(V0, omega, diam/2, rho, S, Cdf, W); %Initialization non-dimensional inflow in hover!!!
+labi0= lambda_i(V0, omega, diam/2, rho, S, Cdf, W); %Initialization non-dimensional inflow in hover!!!
 
 t(1)=t0;
 u(1)=u0;
@@ -43,34 +43,76 @@ z(1)=0;
 V_tot(1) = V0;
 
 % INTEGRATION 
-aantal=2000;
-teind=200;
+aantal=3600;
+teind=60;
 stap=(teind-t0)/aantal;
-
+int_error = 0; % Only reset when controller is off
 %  -------------------------------Start of Simulation------------------------------------
 for i=1:aantal 
-   if t(i)>=0.5 & t(i)<=1 longit(i)=1*pi/180;
-   else longit(i)=0*pi/180;
+   if t(i)>=0.5 & t(i)<=1 
+       longit(i)=0*pi/180;
+       collect(i)= 0*pi/180 + collect(1);
+
+   elseif t(i)>120
+       % Updating trim position
+       longit(1) = longit(i-1);
+       collect(1) = collect(i-1);
+
+       % New forward velocity input
+       u_des(1) = 70*0.5144;
+   elseif t(i)>240
+       % Updating trim position
+       longit(1) = longit(i-1);
+       collect(1) = collect(i-1);
+
+       % New forward velocity input
+       u_des(1) = 90*0.5144;  
+
+   elseif t(i)>360
+       % Updating trim position
+       longit(1) = longit(i-1);
+       collect(1) = collect(i-1);
+
+       % New forward velocity input
+       u0 = 110*0.5144;  
+   else 
+       longit(i) = 0*pi/180;
+       collect(i) = collect(1);
    end
-   
+
    %===================================================
    % Starting the controller
    %===================================================
+   if t(i)>=1
+       % Compute the error term
+       error = -pitch(i);
 
-   if t(i)>=1 
-       K1 = 0.35;
-       K2 = 0.25;
-       longitgrd(i)=K1*pitch(i)+K2*q(i); %PD 
+        % Apply low-pass filter to the error (if needed)
+       int_error = int_error + error * stap;  % Integral of the error
 
-       longit(i)=longitgrd(i);	%In rad
-   end    
+       activation_factor = min(1, (t(i)-15)/2);
+
+       K1 = 0;%0.002; %0.00026;  % Proportional term for angle
+       K2 = 0; %-0.025;  % Derivative term (rate) - reduced from -0.85
+       K3 = 0;%0.0001; % Integral term - start small
+       alpha = stap / (tau + stap);
+       error = -pitch(i);
+       int_error = int_error + error*stap;
+       longit(i) = (K1 + K3*int_error)*(0+pitch(i)) + K2*(0+q(i)); %PD 	%In rad
+       
+
+       K4 = -0.02;
+       theta_ref = 0;
+       collect(i)= (theta_ref - K4*(u(i)-u0));
+       disp(collect(i));
+   end   
+   
    %longit(i)=longitgrd(i)*pi/180;	%in radc
    
     %NO LAW FOR COLLECTIVE
     c(i)=u(i)*sin(pitch(i))-w(i)*cos(pitch(i));
     h(i)=-z(i);
-    collect(i)=collect(1);
- 
+
    %===================================================
    % Parameters
    %===================================================
@@ -119,7 +161,7 @@ for i=1:aantal
     thrust(i)=labidot(i)*rho*vtip^2*area;
     helling(i)=longit(i)-a1(i);
     vv(i)=vdiml(i)*vtip; %it is 1/sqrt(u^2+w^2)
-    
+    D = 0.5*rho*(V_tot(i)^2)*cds*S;
 
     % udot
     udot(i)=-g*sin(pitch(i))-cds/mass*.5*rho*u(i)*vv(i)+...
@@ -155,6 +197,25 @@ for i=1:aantal
     V_tot(i+1) = sqrt(u(i+1)^2 + w(i+1)^2);
 end;
 
+% figure;
+% subplot(1, 2, 1);
+% plot(t,pitch*180/pi),xlabel('t (s)'),ylabel('Pitch (deg)'),grid;
+% subplot(1, 2, 2);
+% plot(t,q*180/pi),xlabel('t (s)'),ylabel('Pitch rate q (deg/s)'),grid;
+
+% figure;
+% subplot(1, 2, 1);
+% plot(t,u),xlabel('t (s)'),ylabel('Horizontal airspeed u (m/s)'), grid;
+% subplot(1, 2, 2);
+% plot(t,pitch*180/pi),xlabel('t (s)'),ylabel('Pitch (deg)'),grid, pause;
+% 
+% figure;
+% subplot(1, 2, 1);
+% %Longitudinal cyclic 
+% plot(t(1:aantal),longit*180/pi),xlabel('t (s)'),ylabel('Cyclic input (deg)'),grid; 
+% subplot(1, 2, 2);
+% plot(t(1:aantal),collect*180/pi),xlabel('t (s)'),ylabel('Collective input (deg)'),grid, pause;
+% 
 figure;
 subplot(1, 3, 1);
 plot(t,u),xlabel('t (s)'),ylabel('Horizontal airspeed u (m/s)'), grid;
@@ -163,27 +224,14 @@ subplot(1, 3, 2);
 plot(t,w),xlabel('t (s)'),ylabel('Vertical airspeed w (m/s)'),grid;
 
 subplot(1, 3, 3);
-plot(t, V_tot),xlabel('t (s)'),ylabel('Total airspeed V (m/s)'),grid, pause;
-
-figure;
-subplot(1, 2, 1);
-%Longitudinal cyclic 
-plot(t(1:aantal),longit*180/pi),xlabel('t (s)'),ylabel('Cyclic input (deg)'),grid; 
-subplot(1, 2, 2);
-plot(t(1:aantal),collect*180/pi),xlabel('t (s)'),ylabel('Collective input (deg)'),grid, pause;
-
-figure;
-subplot(1, 2, 1);
-plot(t,-z),xlabel('t (s)'),ylabel('Altitude h (m)'),grid;
-subplot(1, 2, 2);
-plot(t,w),xlabel('t (s)'),ylabel('Vertical airspeed w (m/s)'),grid, pause;
-
-figure;
-subplot(1, 2, 1);
-plot(t,pitch*180/pi),xlabel('t (s)'),ylabel('Pitch (deg)'),grid;
-subplot(1, 2, 2);
-plot(t,q*180/pi),xlabel('t (s)'),ylabel('Pitch rate q (deg/s)'),grid,pause; 
-
-figure;
-plot(t,x),xlabel('t (s)'),ylabel('Horizontal distance covered x(m)'),grid,pause;
+plot(t, V_tot),xlabel('t (s)'),ylabel('Total airspeed V (m/s)'),grid;
+% 
+% figure;
+% subplot(1, 2, 1);
+% plot(t,-z),xlabel('t (s)'),ylabel('Altitude h (m)'),grid;
+% subplot(1, 2, 2);
+% plot(t,w),xlabel('t (s)'),ylabel('Vertical airspeed w (m/s)'),grid, pause; 
+% 
+% figure;
+% plot(t,x),xlabel('t (s)'),ylabel('Horizontal distance covered x(m)'),grid,pause;
 
