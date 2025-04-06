@@ -1,6 +1,9 @@
 clear all;
 clc;
 
+%===================================================
+% Tuner for the loops using linearised state space system
+%===================================================
 
 % ----------------------------------------------------------------------------------------
 %INITIAL DATA HELICOPTER
@@ -29,84 +32,94 @@ t0=0; %(sec) Setting initial time
 u0=90*0.51444; %(m/sec) Setting initial helicopter airspeed component along body x-axis 
 w0=0; %(m/sec) Setting initial helicopter airspeed component along body z-axis
 q0=0; %(rad/sec) Setting initial helicopter pitch rate 
-pitch0=0*pi/180; %(rad) Setting initial helicopter pitch angle
+pitch0=-3*pi/180; %(rad) Setting initial helicopter pitch angle
 x0=0; %(m) Setting initial helicopter longitudinal position 
 V0 = sqrt(u0^2 + w0^2);
 labi0=lambda_i(V0, omega, diam/2, rho, S, Cdf, W); %Initialization non-dimensional inflow in hover!!!
 
-% Angle of attack 
-phi=atan(w0/u0);
-alfc=longit0-phi;
-
-% mu and lambda_c
-qdiml=q0/omega;
-vdiml=sqrt(u0^2+w0^2)/vtip;
-mu=vdiml*cos(alfc); %Vcos(alphac)/omega*R
-labc=vdiml*sin(alfc); %Vsin(alphac)/omega*R
-
-%a1 Flapping calculi
-teller=-16/lok*qdiml+8/3*mu*collect0-2*mu*(labc+labi0);
-a1=teller/(1-.5*mu^2);
-
-%Thrust coefficient 
-ctelem=cla*volh/4*(2/3*collect0*(1+1.5*mu^2)-(labc+labi0));
-
-%Thrust coefficient from Glauert
-alfd=alfc-a1; % alpha_d
-ctglau=2*labi0*sqrt((vdiml*cos(alfd))^2+(vdiml*sin(alfd)+labi0)^2);
-D = 0.5*rho*(V0^2)*cds*S;
-
-labidot=ctelem; 
-thrust=labidot*rho*vtip^2*area;
-
-helling=longit0-a1;
-vv=vdiml*vtip; %it is 1/sqrt(u^2+w^2)
-
 %===================================================
 % Linearised state space
 %===================================================
-syms u w q pitch collective longit real
-syms collect longit real    % Input variables
 
-% Define your nonlinear ODEs symbolically
-udot = -g*sin(pitch)-cds/mass*.5*rho*u*vv+...
-    thrust/mass*sin(helling)-q*w; % Your full udot
-wdot = g*cos(pitch)-cds/mass*.5*rho*w*vv-...
-    thrust/mass*cos(helling)+q*u; % Your wdot equation
-qdot =-thrust*mast/iy*sin(helling);
-    % Your qdot equation
-pitchdot = q;
+% Symbolic variables
+syms u w pitch q collect longit labi real
 
-% State and input vectors
-x = [u; w; pitch;q];
-u_input = [collect; longit];
+% !! PARAMETERS !!
+% mu and lambda_c
+qdiml=q/omega;
+vdiml=sqrt(u^2+w^2)/vtip;
+phi=atan(w/u);
+vv_sym = sqrt(u^2 + w^2);
+alfc=longit-phi;
+mu=vdiml*cos(alfc); %Vcos(alphac)/omega*R
+labc=vdiml*sin(alfc); %Vsin(alphac)/omega*R
 
-% Compute Jacobians
-A = jacobian([udot; wdot; pitchdot; qdot], x);
-B = jacobian([udot; wdot; pitchdot; qdot], u_input);
+ctelem=cla*volh/4*(2/3*collect*(1+1.5*mu^2)-(labc+labi));
+labidot=ctelem; 
+thrust=labidot*rho*vtip^2*area;
+stap = 0.01;
 
-% Convert to numeric matrices at trim condition
-A_num = double(subs(A, {u, w, pitch, q, collect, longit}, {u0, w0, pitch0, q0, collect0, longit0}));
-B_num = double(subs(B, {u, w, pitch, q, collect, longit}, {u0, w0, pitch0, q0, collect0, longit0}));
+%a1 Flapping calculi
+teller=-16/lok*qdiml+8/3*mu*collect-2*mu*(labc+labi);
+a1=teller/(1-.5*mu^2);
 
+%Thrust coefficient from Glauert
+alfd=alfc-a1; % alpha_d
+ctglau=2*labi*sqrt((vdiml*cos(alfd))^2+(vdiml*sin(alfd)+labi)^2);
 
+helling=longit-a1;
+vv=vdiml*vtip; %it is 1/sqrt(u^2+w^2)
 
-disp(A_num);
-D = [0, 0];
-Cq = [0, 0, 0, 1];
-sys = ss(A_num, B_num, Cq, D);
+% State vector including labi
+x_sym = [u; w; pitch; q; labi];  % Including labi as a state
 
-input_idx = 2;  
-output_idx = 4; % Pitch angle output
+% Symbolic non-linear dynamics
+udot_sym     = -g*sin(pitch) - cds/mass * 0.5*rho*u*vv + thrust/mass*sin(helling) - q*w;
+wdot_sym     =  g*cos(pitch) - cds/mass * 0.5*rho*w*vv - thrust/mass*cos(helling) + q*u;
+pitchdot_sym = q;
+qdot_sym     = -thrust*mast/iy * sin(helling);
+labi_dot_sym = (ctelem - ctglau) / tau;  % Dynamics for labi
 
-% Get transfer function
-G = tf(sys(output_idx, input_idx));
-C = 1;
+% Dynamics vector including labi_dot
+f = [udot_sym; wdot_sym; pitchdot_sym; qdot_sym; labi_dot_sym];  % Updated dynamics with labi
 
-rlocus(-G*C);
+% Jacobians
+A_sym = jacobian(f, x_sym);  % Jacobian with respect to x including labi
+B_sym = jacobian(f, [collect; longit]);  % Jacobian with respect to inputs (collective, longitudinal cyclic)
 
+% Trim values (substitution list)
+subs_list = [u; w; pitch; q; collect; longit; labi];  % Include labi in the substitution list
+vals_list = [u0; w0; pitch0; q0; collect0; longit0; labi0];  % Trim values including labi
 
+% Substitute trim values into the Jacobians
+A_lin = double(subs(A_sym, subs_list, vals_list));  % Linearized A matrix with labi
+B_lin = double(subs(B_sym, subs_list, vals_list));  % Linearized B matrix with labi
 
+% Output matrices
+C = eye(5);
+D = zeros(5,2);
 
+sys_lin = ss(A_lin, B_lin, C, D);
 
+% % Optional: display matrices
+disp('A matrix:'); disp(A_lin);
+disp('B matrix:'); disp(B_lin);
+
+output_idx = 4;
+input_idx = 2;
+
+sys_q = tf(sys_lin(output_idx, input_idx));  % System transfer function
+
+% Define the PI controller
+K_d = 1;  % Derivative gain
+K_i = 0;    % Integral gain
+C = K_d;  % Integral controller: K_d + K_i/s
+
+figure;
+rlocus(-sys_q); 
+
+% % Plot the step response
+% step(CL_q_PI);
+% title('Step Response with PI Controller');
+% grid on;
 

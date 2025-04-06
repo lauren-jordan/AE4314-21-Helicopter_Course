@@ -117,8 +117,10 @@ xdot(i)=u(i)*cos(pitch(i))+w(i)*sin(pitch(i));
 zdot(i)=-c(i);
 
 labidot(i)=(ctelem(i)-ctglau(i))/tau;
-%corrdot(i)=uwens-u(i);
-%corrcdot(i)=cwens(i)-c(i);
+
+corrdot(i)=uwens-u(i);
+
+corrcdot(i)=cwens(i)-c(i);
 
 u(i+1)=u(i)+stap*udot(i);
 w(i+1)=w(i)+stap*wdot(i);

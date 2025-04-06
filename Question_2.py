@@ -131,7 +131,7 @@ AOA_f = np.zeros((len(psi), len(r_var))) #  AOA degrees
 for i in np.arange(0, len(psi)): 
 
     # Pitch angle 
-    pitch = collect + longcyc*np.cos(psi[i]) - latcyc*np.sin(psi[i])
+    pitch = collect + longcyc*np.cos(psi[i]) + latcyc*np.sin(psi[i])
 
     for r in np.arange(0, len(r_var)):
         if r_var[r] <= 1.3:
