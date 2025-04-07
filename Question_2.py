@@ -20,8 +20,9 @@ def flap_angle(a0, a1, b1, psi):
 def AOA(pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi):
 
     # Angle of attack calculation
-    den = r+mu*np.sin(psi) 
-    num = lambda_c + lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + mu*beta*np.cos(psi) - (p/omega)*r*np.sin(psi)
+    den = r+mu*np.sin(psi)
+
+    num = -(lambda_c + lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + mu*beta*np.cos(psi) + (p/omega)*r*np.sin(psi))
 
     alpha = pitch - num/den
     return alpha 
@@ -79,7 +80,7 @@ latcyc = 1*np.pi / 180  # Lateral cyclic (radians)
 V = 20 # m/s
 q = 20*np.pi/180 # rad/s
 p = 10*np.pi/180 # rad/s
-alphac = 1*np.pi/180#longcyc #10*np.pi/180 # Angle of attack of the control plane 
+alphac = longcyc # Angle of attack of the control plane 
 mu = V*np.cos(alphac)/(rotor_speed*R)
 
 _, vibar, _, _ = vi_BEM(V, rho, W, R, Cdf, S) # Normalised induced velocity
@@ -92,11 +93,11 @@ K = (1.33*abs((mu/(lambda_c+lambda_i))))/(1.2 + abs((mu/(lambda_c+lambda_i))))
 
 ch = K*lambda_i/(1+0.5*mu**2)
 
-a0 = (gamma/8)*(collect*(1+mu**2) - (4/3)*(lambda_i+lambda_c) + 2*mu*p/(3*rotor_speed) - (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
+a0 = (gamma/8)*(collect*(1+mu**2) - (4/3)*(lambda_i+lambda_c) +  2*mu*p/(3*rotor_speed) - (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
 
-a1 = (-16*q/(gamma*rotor_speed) - latcyc*(1+mu**2) + (8/3)*collect*mu - 2*mu*(lambda_i+lambda_c) + p/rotor_speed)/(1-(0.5*mu**2))
+a1 = (16*q/(gamma*rotor_speed) - (- latcyc*(1+mu**2) + (8/3)*collect*mu -  2*mu*(lambda_i+lambda_c) + p/rotor_speed))/(1-(0.5*mu**2))
 
-b1 = (-16*p/(rotor_speed*gamma) - longcyc*(1 + (mu**2)) - q/rotor_speed + (4/3)*mu*a0)/(1+(0.5*mu**2)) 
+b1 = (16*p/(rotor_speed*gamma) + (longcyc*(1 + (mu**2)) + q/rotor_speed - (4/3)*mu*a0))/(1+(0.5*mu**2)) 
 
 b1 = b1 + ch 
 
@@ -131,13 +132,14 @@ AOA_f = np.zeros((len(psi), len(r_var))) #  AOA degrees
 for i in np.arange(0, len(psi)): 
 
     # Pitch angle 
-    pitch = collect + longcyc*np.cos(psi[i]) + latcyc*np.sin(psi[i])
+    pitch = collect + longcyc*np.cos(psi[i]) - latcyc*np.sin(psi[i])
 
     for r in np.arange(0, len(r_var)):
         if r_var[r] <= 1.3:
             AOA_f[i, r] = np.NaN 
         else:
             #pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi
+
             AOA1 = AOA(pitch, lambda_c, lambda_i, dbeta_f[i], r_var[r]/R, rotor_speed, q, p, mu, beta_f[i], psi[i])
             
             AOA_f[i, r] = AOA1*180/np.pi 

@@ -27,7 +27,7 @@ t0=0; %(sec) Setting initial time
 u0=90*0.51444; %(m/sec) Setting initial helicopter airspeed component along body x-axis 
 w0=0; %(m/sec) Setting initial helicopter airspeed component along body z-axis
 q0=0; %(rad/sec) Setting initial helicopter pitch rate 
-pitch0=-2*pi/180; %(rad) Setting initial helicopter pitch angle
+pitch0=-6*pi/180; %(rad) Setting initial helicopter pitch angle
 x0=0; %(m) Setting initial helicopter longitudinal position 
 V0 = sqrt(u0^2 + w0^2);
 labi0= lambda_i(V0, omega, diam/2, rho, S, Cdf, W); %Initialization non-dimensional inflow in hover!!!
@@ -43,65 +43,79 @@ z(1)=0;
 V_tot(1) = V0;
 
 % INTEGRATION 
-aantal=1000;
-teind=20;
+aantal=3000;
+teind=300;
 stap=(teind-t0)/aantal;
-int_error = 0;
-int_errorc =0;
-cdes = u0*sin(pitch0)-w0*cos(pitch0);
+int_error(1) = 0;
+int_errorc(1) =0;
+int_errorq(1) = 0;
+cdes(1) = 0;
+hdes(1) = 0;
 
 %  -------------------------------Start of Simulation------------------------------------
-for i=1:aantal 
-   if t(i)>=0.5 & t(i)<=1 
-       longit(i)=1*pi/180;
-       collect(i)= 0*pi/180 + collect(1);
-       
-   % elseif t(i)>120
-   %     % Updating trim position
-   %     longit(1) = longit(i-1);
-   %     collect(1) = collect(i-1);
-   % 
-   %     % New forward velocity input
-   %     u(1) = 70*0.5144;
-   % elseif t(i)>240
-   %     % Updating trim position
-   %     longit(1) = longit(i-1);
-   %     collect(1) = collect(i-1);
-   % 
-   %     % New forward velocity input
-   %     u_des(1) = 90*0.5144;  
-   % 
-   % elseif t(i)>360
-   %     % Updating trim position
-   %     longit(1) = longit(i-1);
-   %     collect(1) = collect(i-1);
-   % 
-   %     % New forward velocity input
-   %     u0 = 110*0.5144;  
-   else 
-       longit(i) = 0*pi/180;
-       collect(i) = collect(1);
-   end
+for i = 1:aantal
+    if t(i) >= 0.5 && t(i) <= 1
+        longit(i) = 1 * pi / 180;
+        collect(i) = 0 * pi / 180 + collect(1);
+
+    elseif t(i) > 240
+        longit(1) = longit(240);
+        collect(1) = collect(240);
+        q(1) = q(240);
+        pitch(1) = pitch(240);
+        hdes(1) = z(240);
+        cdes(1) = c(240);
+        int_errorc(1) = int_errorc(240);
+        u(i) = sqrt((110 * 0.5144)^2 - w(240)^2);
+
+    elseif t(i) > 120
+        longit(1) = longit(120);
+        collect(1) = collect(120);
+        q(1) = q(120);
+        pitch(1) = pitch(120);
+        hdes(1) = z(120);
+        cdes(1) = c(120);
+        int_errorc(1) = int_errorc(120);
+        u(i) = sqrt((90 * 0.5144)^2 - w(120)^2);
+
+    elseif t(i) > 60
+        longit(1) = longit(60);
+        collect(1) = collect(60);
+        q(1) = q(60);
+        pitch(1) = pitch(60);
+        hdes(1) = z(60);
+        cdes(1) = c(60);
+        int_errorc(1) = int_errorc(60);
+        u(i) = sqrt((70 * 0.5144)^2 - w(60)^2);
+
+    else
+        longit(i) = 0 * pi / 180;
+        collect(i) = collect(1);
+    end
+
+
    %===================================================
    % Controller always on
    %===================================================
-   if t(i)>=1
+   if t(i)>=0.01
 
        % Compute the error term
-       error = pitch0-pitch(i);
+       error = pitch(1)-pitch(i);
        errorc = cdes-c(i);
-       int_error = int_error + error * stap;  % Integral of the error
+       errorq = q(1)-q(i);
 
-       K1 = 0; % Proportional term for angle
-       K2 = -8.75;  % Derivative term (rate) - reduced from -0.85
-       K3 = 0; % Integral term - start small
-       longit(i) = (K1 + K3*int_error)*(0-(pitch0 - pitch(i))) + (K2)*(0-(q0 - q(i))); %PD 	%In rad
+       int_errorc(i) = int_errorc(1) + errorc * stap;
+       K1 = 1.353; % Proportional term for angle
+       K2 = 1;  % Derivative term (rate) - reduced from -0.85
+       longit(i) = (K1)*(pitch(i)-pitch(1)) + (K2)*(q(i)-q(1)); %PD 	%In rad
 
-       % K4 = 0.0075;
+       K4 = 0.04;
        % int_errorc = int_errorc + errorc * stap;
-       % K5 = 0;  %-0.0001;
-       % %cdes = K5*(hdes - h);
-       % collect(i)= collect(1) + (K4 + K5*int_error)*(cdes - c(i));
+       K5 = -0.01;
+       K6 = -1;
+       cdes = K6*(hdes - (z(i)));
+       collect(i)= collect(1) + (K4 + K5*int_errorc(i))*(cdes - c(i));
+
    end   
  
     c(i)=u(i)*sin(pitch(i))-w(i)*cos(pitch(i));
@@ -179,7 +193,7 @@ for i=1:aantal
 
     % Change in lambda_i
     labidot(i)=(ctelem(i)-ctglau(i))/tau;
-    labi(i+1)=labi(i)+stap*labidot(i);
+    labi(i+1)=labi(i) +stap*labidot(i);
     u(i+1)=u(i) + stap*udot(i);
     w(i+1)=w(i) + stap*wdot(i);
 
@@ -190,59 +204,31 @@ for i=1:aantal
     pitch(i+1)=pitch(i) + stap*pitchdot(i);
     x(i+1)=x(i) +stap*xdot(i);
     z(i+1)=z(i) + stap*zdot(i);
-    t(i+1)=t(i) +stap;
+    t(i+1)=t(i) + stap;
     V_tot(i+1) = sqrt(u(i+1)^2 + w(i+1)^2);
 end;
 
 figure;
-subplot(2, 2, 1);
-plot(t,c),xlabel('t (s)'),ylabel('c'),grid;
-subplot(2, 2, 2);
-plot(t(1:aantal),collect*180/pi),xlabel('t (s)'),ylabel('collective (deg)'),grid;
-subplot(2, 2, 3);
-plot(t, V_tot),xlabel('t (s)'),ylabel('Total airspeed V (m/s)'),grid;
-subplot(2, 2, 4);
-plot(t, w),xlabel('t (s)'),ylabel('w (m/s)'),grid, pause;
+subplot(1, 2, 1);
+plot(t(1:aantal),collect*180/pi),xlabel('Time (s)'),ylabel('Collective Input (deg)'),grid;
+subplot(1, 2, 2);
+plot(t(1:aantal),longit*180/pi),xlabel('Time (s)'),ylabel('Cyclic input (deg)'),grid,pause;
 
 figure;
 subplot(1, 3, 1);
-plot(t,pitch*180/pi),xlabel('t (s)'),ylabel('Pitch (deg)'),grid;
+plot(t, u),xlabel('Time (s)'),ylabel('u (m/s)'),grid;
 subplot(1, 3, 2);
-plot(t,q*180/pi),xlabel('t (s)'),ylabel('Pitch rate q (deg/s)'),grid;
+plot(t, w),xlabel('Time (s)'),ylabel('w (m/s)'),grid;
 subplot(1, 3, 3);
-plot(t, u),xlabel('t (s)'),ylabel('u'),grid, pause;
+plot(t, V_tot),xlabel('Time (s)'),ylabel('Total airspeed V (m/s)'),grid, pause;
 
-plot(t(1:aantal),longit*180/pi),xlabel('t (s)'),ylabel('Cyclic input (deg)'),grid; 
-
-% figure;
-% subplot(1, 2, 1);
-% plot(t,u),xlabel('t (s)'),ylabel('Horizontal airspeed u (m/s)'), grid;
-% subplot(1, 2, 2);
-% plot(t,q*180/pi),xlabel('t (s)'),ylabel('Pitch rate (deg/s)'),grid, pause;
-
-% figure;
-% subplot(1, 2, 1);
-% %Longitudinal cyclic 
-
-%subplot(1, 2, 2);
-%plot(t(1:aantal),collect*180/pi),xlabel('t (s)'),ylabel('Collective input (deg)'),grid, pause;
-% 
-% figure;
-% subplot(1, 3, 1);
-% plot(t,u),xlabel('t (s)'),ylabel('Horizontal airspeed u (m/s)'), grid;
-% 
-% subplot(1, 3, 2);
-% plot(t,w),xlabel('t (s)'),ylabel('Vertical airspeed w (m/s)'),grid;
-% 
-% subplot(1, 3, 3);
-% plot(t, V_tot),xlabel('t (s)'),ylabel('Total airspeed V (m/s)'),grid;
-% 
-% figure;
-% subplot(1, 2, 1);
-% plot(t,-z),xlabel('t (s)'),ylabel('Altitude h (m)'),grid;
-% subplot(1, 2, 2);
-% plot(t,w),xlabel('t (s)'),ylabel('Vertical airspeed w (m/s)'),grid, pause; 
-% 
-% figure;
-% plot(t,x),xlabel('t (s)'),ylabel('Horizontal distance covered x(m)'),grid,pause;
+figure;
+subplot(2, 2, 1);
+plot(t,pitch*180/pi),xlabel('Time (s)'),ylabel('Pitch (deg)'),grid;
+subplot(2, 2, 2);
+plot(t,q*180/pi),xlabel('Time (s)'),ylabel('Pitch rate q (deg/s)'),grid;
+subplot(2, 2, 3);
+plot(t,z),xlabel('Time (s)'),ylabel('Altitude (m)'),grid;
+subplot(2, 2, 4);
+plot(t,c),xlabel('Time (s)'),ylabel('Vertical Velocity c (m/s)'),grid;
 
