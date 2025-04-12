@@ -66,35 +66,36 @@ D = Cdf*1/2*rho*V^2*S;
 
 % Derivatives for the matrix 
 X = (T/mass)*sin(longit0-a1)-(D/mass)*(u/V)-g*sin(pitch0);
-dX = jacobian(X, [u, w, theta_f, q, collect0, longit0]);
-dX_x = double(subs(dX, [u, w, theta_f, q, collect0, longit0], [u0, w0, pitch0, q0, collect_0, longit_0]));
+dX = jacobian(X, [u, w, theta_f, q, labi, collect0, longit0]);
+dX_x = double(subs(dX, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
-Z = -(T/mass)*cos(longit0-a1)-D/mass*w/V+g*cos(pitch0);
-dZ = jacobian(Z, [u, w, theta_f, q, collect0, longit0]);
-dZ_x = double(subs(dZ, [u, w, theta_f, q, collect0, longit0], ...
-    [u0, w0, pitch0, q0, collect_0, longit_0]));
+Z = -(T/mass)*cos(longit0-a1)-(D/mass)*w/V+g*cos(pitch0);
+dZ = jacobian(Z, [u, w, theta_f, q, labi, collect0, longit0]);
+dZ_x = double(subs(dZ, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
 M = -(T/iy)*mast*sin(longit0-a1);
-dM = jacobian(M, [u, w, theta_f, q, collect0, longit0]);
-dM_x = double(subs(dM, [u, w, theta_f, q collect0, longit0], ...
-    [u0, w0, pitch0, q0, collect_0, longit_0]));
+dM = jacobian(M, [u, w, theta_f, q, labi, collect0, longit0]);
+dM_x = double(subs(dM, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
 tau = 0.1;
 Lambda = 1/tau*(ctel-ctglau)/(omega*R);
-dLambda = jacobian(Lambda, [u, w, theta_f, q, labi, theta_0, theta_c]);
-dLambda_new = double(subs(dLambda, [u, w, q, theta_f, labi, theta_0, theta_c], ...
-    [u0, w0, theta_f0, q0, labi0, collect_0, longit_0]));
+dLamb = jacobian(Lambda, [u, w, theta_f, q, labi, collect0, longit0]);
+dLamb_new = double(subs(dLamb, [u, w, q, theta_f, labi, collect0, longit0], ...
+    [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
 %% Linear system
-A = [dX_x(1) dX_x(2) (dX_x(3)) (dX_x(4)-w0) dX_x(5);
-    dZ_x(1) dZ_x(2) (dZ_x(3)) (dZ_x(4)+u0) dZ_x(5); 
+A = [dX_x(1) dX_x(2) (dX_x(3)-g*cos(pitch0)) (dX_x(4)-w0) dX_x(5);
+    dZ_x(1) dZ_x(2) (dZ_x(3)-g*sin(pitch0)) (dZ_x(4)+u0) dZ_x(5); 
     0 0 0 1 0;
-    dM_x(1) dM_x(2) dM_x(3) dM_x(4) dM_x(5)];
+    dM_x(1) dM_x(2) dM_x(3) dM_x(4) dM_x(5);
+    dLamb_new(1) dLamb_new(2) dLamb_new(3) dLamb_new(4) dLamb_new(5)];
 
 B = [dX_x(6) dX_x(7);
     dZ_x(6) dZ_x(7);
     0 0;
-    dM_x(6) dM_x(7)];
+    dM_x(6) dM_x(7);
+    dLamb_new(6), dLamb_new(7)];
+
 
 disp("X_u");
 disp(dX_x(1));
@@ -141,29 +142,27 @@ legend('Pitch [deg]')
 subplot(2, 3, 5);
 plot(t, y(:, 5)*180/pi);
 legend('Pitch [deg]')
-
-
-
-%---------------------------------------------------
-syms lamb_i
-lamb_i = vpasolve(lamb_i*(lamb_i - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
-
-disp("The eigenvalues of the helicopter phugoid mode are:")
-disp(lamb_i(1))
-disp(lamb_i(2))
-disp(lamb_i(3))
-
-disp("The respective frequency characteristics are:")
-wn1 = abs(lamb_i(1));
-wn2 = abs(lamb_i(2));
-wn3 = abs(lamb_i(3));
-disp(wn1)
-disp(wn2)
-disp(wn3)
-
-disp("The respective damping characteristics are:")
-disp(-real(lamb_i(1))/wn1)
-disp(-real(lamb_i(2))/wn2)
-disp(-real(lamb_i(3))/wn3)
+% 
+% %---------------------------------------------------
+% syms lamb_i
+% lamb_i = vpasolve(lamb_i*(lamb_i - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
+% 
+% disp("Eigenvalues:")
+% disp(lamb_i(1))
+% disp(lamb_i(2))
+% disp(lamb_i(3))
+% 
+% disp("Frequency:")
+% wn1 = abs(lamb_i(1));
+% wn2 = abs(lamb_i(2));
+% wn3 = abs(lamb_i(3));
+% disp(wn1)
+% disp(wn2)
+% disp(wn3)
+% 
+% disp("Damping coeffs:")
+% disp(-real(lamb_i(1))/wn1)
+% disp(-real(lamb_i(2))/wn2)
+% disp(-real(lamb_i(3))/wn3)
 
 

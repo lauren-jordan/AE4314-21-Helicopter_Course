@@ -1,5 +1,3 @@
-clear all;
-clc;
 
 %===================================================
 % Tuner for the loops using linearised state space system
@@ -31,7 +29,7 @@ longit_0=1.32*pi/180; % (rad) Longitudinal cyclic pitch angle
 t0=0; %(sec) Setting initial time 
 V0=70*0.51444; %(m/sec) Setting initial helicopter airspeed component along body x-axis 
 D0 = 0.5*rho*(V0^2)*Cdf*S;
-pitch0 = atan(-D0/W);
+pitch0 = 5*pi/180; %atan(D0/W);
 u0 = V0*cos(pitch0);
 w0 = V0*sin(pitch0); %(m/sec) Setting initial helicopter airspeed component along body z-axis
 q0 = 0; %(rad/sec) Setting initial helicopter pitch rate 
@@ -69,7 +67,7 @@ X = (T/mass)*sin(longit0-a1)-(D/mass)*(u/V)-g*sin(pitch0);
 dX = jacobian(X, [u, w, theta_f, q, labi, collect0, longit0]);
 dX_x = double(subs(dX, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
-Z = -(T/mass)*cos(longit0-a1)-D/mass*w/V+g*cos(pitch0);
+Z = -(T/mass)*cos(longit0-a1)-(D/mass)*w/V+g*cos(pitch0);
 dZ = jacobian(Z, [u, w, theta_f, q, labi, collect0, longit0]);
 dZ_x = double(subs(dZ, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
@@ -84,8 +82,8 @@ dLamb_new = double(subs(dLamb, [u, w, q, theta_f, labi, collect0, longit0], ...
     [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
 %% Linear system
-A = [dX_x(1) dX_x(2) (dX_x(3)) (dX_x(4)-w0) dX_x(5);
-    dZ_x(1) dZ_x(2) (dZ_x(3)) (dZ_x(4)+u0) dZ_x(5); 
+A = [dX_x(1) dX_x(2) (dX_x(3)-g*cos(pitch0)) (dX_x(4)-w0) dX_x(5);
+    dZ_x(1) dZ_x(2) (dZ_x(3)-g*sin(pitch0)) (dZ_x(4)+u0) dZ_x(5); 
     0 0 0 1 0;
     dM_x(1) dM_x(2) dM_x(3) dM_x(4) dM_x(5);
     dLamb_new(1) dLamb_new(2) dLamb_new(3) dLamb_new(4) dLamb_new(5)];
@@ -96,72 +94,14 @@ B = [dX_x(6) dX_x(7);
     dM_x(6) dM_x(7)
     dLamb_new(6), dLamb_new(7)];
 
-disp("X_u");
-disp(dX_x(1));
-Xu = dX_x(1);
-disp(" ");
-disp("M_u");
-disp(dM_x(1));
-Mu = dM_x(1);
-disp(" ");
-disp("M_q");
-disp(dM_x(4));
-Mq = dM_x(4);
 
-C = eye(5,5);
-mdl = ss(A,B,C,0);
+C = [0 0 0 1 0];
 
-% eigs(A);
-% disp(eigs(A));
+D = 0;
 
-%% Verifying linear model
-t_end = 50;
+mdl = ss(A,B(:,2),C,0);
 
-t = linspace(0,t_end, t_end/0.1+1);
-u = [ones(1,10)*1*pi/180, zeros(1,length(t)-10); zeros(1,length(t))];
-y = lsim(mdl, u, t);
+sys = tf(mdl);
+Kq = 1;
 
-figure;
-subplot(2, 3, 1);
-plot(t, y(:, 1));
-legend('u')
-
-subplot(2, 3, 2);
-plot(t, y(:, 2));
-legend('w')
-
-subplot(2, 3, 3);
-plot(t, y(:, 3)*180/pi);
-legend('q [deg/s]')
-
-subplot(2, 3, 4);
-plot(t, y(:, 4)*180/pi);
-legend('Pitch [deg]')
-
-subplot(2, 3, 5);
-plot(t, y(:, 5)*180/pi);
-legend('Pitch [deg]')
-
-%---------------------------------------------------
-syms lamb_i
-lamb_i = vpasolve(lamb_i*(lamb_i - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
-
-disp("Eigenvalues:")
-disp(lamb_i(1))
-disp(lamb_i(2))
-disp(lamb_i(3))
-
-disp("Frequency:")
-wn1 = abs(lamb_i(1));
-wn2 = abs(lamb_i(2));
-wn3 = abs(lamb_i(3));
-disp(wn1)
-disp(wn2)
-disp(wn3)
-
-disp("Damping coeffs:")
-disp(-real(lamb_i(1))/wn1)
-disp(-real(lamb_i(2))/wn2)
-disp(-real(lamb_i(3))/wn3)
-
-
+rlocus(-Kq*sys);

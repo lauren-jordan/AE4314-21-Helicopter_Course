@@ -48,8 +48,8 @@ c(1) = c0;
 pitchdes(1) = pitchdes0;
 
 % INTEGRATION 
-aantal=2000;
-teind=200;
+aantal=4800;
+teind=480;
 stap=(teind-t0)/aantal;
 int_errorp(1) = 0;
 int_errorc(1) =0;
@@ -59,74 +59,78 @@ hdes(1) = 0;
 %  -------------------------------Start of Simulation------------------------------------
 for i = 1:aantal
     if t(i) >= 0.5 && t(i) <= 1
-        longit(i) = 1 * pi / 180;
+        longit(i) = 1 * pi / 180 +longit(1);
         collect(i) = 0 * pi / 180 + collect(1);
+        int_errorp(i) = 0;
+        int_errorc(i) =0;
 
-    % elseif t(i) >= 360 && t(i) <=360.5
-    %     longit(1) = longit(360);
-    %     collect(1) = collect(360);
-    %     q(1) = q(360);
-    %     hdes(1) = z(360);
-    %     cdes(1) = c(360);
-    %     int_errorc(1) = int_errorc(360);
-    %     int_errorp(1) = int_errorp(360); 
-    %     V_tot(1) = 110*0.5144;
-    %     D = 0.5*rho*(V_tot(1)^2)*Cdf*S;
-    %     pitchdes(1) = atan(-D/W);
-    %     pitch(1) = pitch(360);
+    elseif t(i) >= 360 && t(i) <=360.5
+        longit(1) = longit(360);
+        collect(1) = collect(360);
+        q(1) = q(360);
+        hdes(1) = z(360);
+        cdes(1) = c(360);
+        int_errorc(1) = int_errorc(360);
+        int_errorp(1) = int_errorp(360); 
+        V_tot(1) = 110*0.5144;
+        D = 0.5*rho*(V_tot(1)^2)*Cdf*S;
+        pitchdes(1) = atan(-D/W);
+        pitch(1) = pitch(360);
     % 
-    % elseif t(i) >= 240 && t(i) <=240.5
-    %     longit(1) = longit(240);
-    %     collect(1) = collect(240);
-    %     q(1) = q(240);
-    %     hdes(1) = z(240);
-    %     cdes(1) = c(240);
-    %     int_errorc(1) = int_errorc(240); 
-    %     int_errorp(1) = int_errorp(240); 
-    %     V_tot(1) = 90*0.5144;
-    %     D = 0.5*rho*(V_tot(1)^2)*Cdf*S;
-    %     pitchdes(1) = atan(-D/W);
-    %     pitch(1) = pitch(240);
+    elseif t(i) >= 240 && t(i) <=240.5
+        longit(1) = longit(240);
+        collect(1) = collect(240);
+        q(1) = q(240);
+        hdes(1) = z(240);
+        cdes(1) = c(240);
+        int_errorc(1) = int_errorc(240); 
+        int_errorp(1) = int_errorp(240); 
+        V_tot(1) = 90*0.5144;
+        D = 0.5*rho*(V_tot(1)^2)*Cdf*S;
+        pitchdes(1) = atan(-D/W);
+        pitch(1) = pitch(240);
     % % 
-    % elseif t(i) >= 120 && t(i) <= 120.5
-    %     longit(1) = longit(120);
-    %     collect(1) = collect(120);
-    %     q(1) = q(120);
-    %     hdes(1) = z(120);
-    %     cdes(1) = c(120);
-    %     int_errorc(1) = int_errorc(120); 
-    %     int_errorp(1) = int_errorp(120); 
-    %     V_tot(1) = 70*0.5144;
-    %     D = 0.5*rho*(V_tot(1)^2)*Cdf*S;
-    %     pitchdes(1) = atan(-D/W);
-    %     pitch(1) = pitch(120);
-
+    elseif t(i) >= 120 && t(i) <= 120.5
+        longit(1) = longit(120);
+        collect(1) = collect(120);
+        q(1) = q(120);
+        hdes(1) = z(120);
+        cdes(1) = c(120);
+        int_errorc(1) = int_errorc(120); 
+        int_errorp(1) = int_errorp(120); 
+        V_tot(1) = 70*0.5144;
+        D = 0.5*rho*(V_tot(1)^2)*Cdf*S;
+        pitchdes(1) = atan(-D/W);
+        pitch(1) = pitch(120);
 
     else
         longit(i) = longit(1);
         collect(i) = collect(1);
+        int_errorp(i) = 0;
+        int_errorc(i) =0;
     end
 
 
    %===================================================
    % Controller always on
    %===================================================
-   if t(i)>=0.01
+   if t(i)>=2
 
        % Compute the error term
-       error = pitch(i)-pitchdes(1);
+       error = pitchdes(1)-pitch(i);
        errorc = cdes-c(i);
        
        int_errorp(i) = int_errorp(i-1) + error * stap;
        int_errorc(i) = int_errorc(i-1) + errorc * stap;
-       K1 = 0.55; % Proportional term 
-       K2 = 0.75;  % Derivative term 
-       K3 = 0.15;
-       longit(i) = K1*(pitch(i)-pitchdes(1)) + (K2)*(q(i)) + K3*int_errorp(i); %PD 
 
-       K4 = 0.03;
+       K1 = -0.1; % Proportional term 
+       K2 = 0.75;  % Derivative term 
+       K3 = -0.02;
+       longit(i) = K1*(pitchdes(1)-pitch(i)) + K2*q(i) + K3*int_errorp(i); %PD 
+
+       K4 =  0.03;
        K5 = 0.01;
-       K6 = -0.175;
+       K6 = -0.75;
        cdes = K6*(hdes - (z(i)));
        collect(i)= collect(1) + K4*(cdes - c(i)) + K5*int_errorc(i);
 
@@ -185,15 +189,15 @@ for i = 1:aantal
     vv(i)=vdiml(i)*vtip; %it is 1/sqrt(u^2+w^2)
 
     % udot
-    udot(i)=-g*sin(pitch(i))-Cdf/mass*.5*rho*u(i)*vv(i)+...
+    udot(i)=-g*sin(pitch(i))-((Cdf)/mass)*.5*S*rho*u(i)*vv(i)+...
     thrust(i)/mass*sin(helling(i))-q(i)*w(i);
 
     % wdot
-    wdot(i)=g*cos(pitch(i))-Cdf/mass*.5*rho*w(i)*vv(i)-...
-    thrust(i)/mass*cos(helling(i))+q(i)*u(i);
+    wdot(i)=g*cos(pitch(i))-(Cdf/mass)*.5*S*rho*w(i)*vv(i)-...
+    (thrust(i)/mass)*cos(helling(i))+q(i)*u(i);
     
     %qdot 
-    qdot(i)=-thrust(i)*mast/iy*sin(helling(i));
+    qdot(i)=-thrust(i)*(mast/iy)*sin(helling(i));
     
     % theta_f
     pitchdot(i)=q(i);
@@ -230,7 +234,6 @@ subplot(2, 2, 3);
 plot(t,z),xlabel('Time (s)'),ylabel('Altitude (m)'),grid;
 subplot(2, 2, 4);
 plot(t,c),xlabel('Time (s)'),ylabel('Vertical Velocity c (m/s)'),grid, pause;
-
 
 figure;
 subplot(1, 2, 1);
