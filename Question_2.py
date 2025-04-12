@@ -22,7 +22,7 @@ def AOA(pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi):
     # Angle of attack calculation
     den = r+mu*np.sin(psi)
 
-    num = -(lambda_c + lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + mu*beta*np.cos(psi) + (p/omega)*r*np.sin(psi))
+    num = -(lambda_c + lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + mu*np.sin(beta)*np.cos(psi) + (p/omega)*r*np.sin(psi))
 
     alpha = pitch - num/den
     return alpha 
@@ -93,11 +93,11 @@ K = (1.33*abs((mu/(lambda_c+lambda_i))))/(1.2 + abs((mu/(lambda_c+lambda_i))))
 
 ch = K*lambda_i/(1+0.5*mu**2)
 
-a0 = (gamma/8)*(collect*(1+mu**2) - (4/3)*(lambda_i+lambda_c) +  2*mu*p/(3*rotor_speed) - (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
+a0 = (gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) +  2*mu*p/(3*rotor_speed) + (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
 
-a1 = (16*q/(gamma*rotor_speed) - (- latcyc*(1+mu**2) + (8/3)*collect*mu -  2*mu*(lambda_i+lambda_c) + p/rotor_speed))/(1-(0.5*mu**2))
+a1 = (16*q/(gamma*rotor_speed) + (latcyc*(1+mu**2) + (8/3)*collect*mu +  2*mu*(lambda_i+lambda_c) + p/rotor_speed))/(1-(0.5*mu**2))
 
-b1 = (16*p/(rotor_speed*gamma) + (longcyc*(1 + (mu**2)) + q/rotor_speed - (4/3)*mu*a0))/(1+(0.5*mu**2)) 
+b1 = (-16*p/(rotor_speed*gamma) + longcyc*(1 + (mu**2)) - q/rotor_speed - (4/3)*mu*a0)/(1+(0.5*mu**2)) 
 
 b1 = b1 + ch 
 
@@ -121,7 +121,7 @@ if flap_graph:
     plt.grid()
     plt.xlabel(r"Azimuth angle $\psi [\degree]$")
     plt.ylabel(r"Flapping angle $\beta [\degree]$")
-    plt.title(r"Flapping angle $\beta$ vs Azimuth angle $\psi$")
+    #plt.title(r"Flapping angle $\beta$ vs Azimuth angle $\psi$")
     plt.show()
 
 #-------------------------- AOA -------------------------
@@ -135,8 +135,10 @@ for i in np.arange(0, len(psi)):
     pitch = collect + longcyc*np.cos(psi[i]) - latcyc*np.sin(psi[i])
 
     for r in np.arange(0, len(r_var)):
-        if r_var[r] <= 1.3:
+        if r_var[r] <= 1.2 :
             AOA_f[i, r] = np.NaN 
+        # elif r_var[r] <= 0.5:
+        #     AOA_f[i, r] = np.NaN
         else:
             #pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi
 
@@ -148,12 +150,12 @@ if AOA_graph:
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
 
     # colours : magma, viridis, plasma, inferno, cividis
-    contour = ax.contourf(psi, r_var, AOA_f.T, levels=20, cmap='plasma')
+    contour = ax.contourf(psi, r_var, AOA_f.T, levels=10, cmap='plasma')
 
     fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
-    ax.set_title('Contours of Constant Angle of Attack')
+    #ax.set_title('Contours of Constant Angle of Attack')
 
-    ax.set_theta_zero_location('S')
+    ax.set_theta_zero_location('S') 
 
     plt.show()
 

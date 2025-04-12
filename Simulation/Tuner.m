@@ -22,180 +22,146 @@ vtip= omega*(diam/2);
 iy=(1/12)*mass*(4.1^2 + 16.14^2); % Rectangular box approximation with a = 4.1 and b = 16.41 [kg/m^4]
 mast=2.285; %(m) Vertical distance between rotor CG and rotor hub
 area=pi/4*diam^2;
-tau=.1;		%time constant in dynamiCs inflow!!!
-collect0=6*pi/180; % (rad) Collective pitch
-longit0=0*pi/180; % (rad) Longitudinal cyclic pitch angle
+collect_0=4.9*pi/180; % (rad) Collective pitch
+longit_0=1.32*pi/180; % (rad) Longitudinal cyclic pitch angle
 [Cdf, S] = fuselage_dragS();
 
 % ---------------------------------Parameters------------------------------------
 %Initial values;
 t0=0; %(sec) Setting initial time 
-u0=90*0.51444; %(m/sec) Setting initial helicopter airspeed component along body x-axis 
-w0=0; %(m/sec) Setting initial helicopter airspeed component along body z-axis
-q0=0; %(rad/sec) Setting initial helicopter pitch rate 
-pitch0=-3*pi/180; %(rad) Setting initial helicopter pitch angle
+V0=70*0.51444; %(m/sec) Setting initial helicopter airspeed component along body x-axis 
+D0 = 0.5*rho*(V0^2)*Cdf*S;
+pitch0 = atan(-D0/W);
+u0 = V0*cos(pitch0);
+w0 = V0*sin(pitch0); %(m/sec) Setting initial helicopter airspeed component along body z-axis
+q0 = 0; %(rad/sec) Setting initial helicopter pitch rate 
 x0=0; %(m) Setting initial helicopter longitudinal position 
-V0 = sqrt(u0^2 + w0^2);
 labi0=lambda_i(V0, omega, diam/2, rho, S, Cdf, W); %Initialization non-dimensional inflow in hover!!!
-cdes0 = u0*sin(pitch0)-w0*cos(pitch0);
-c0 = cdes0;
-%=================
-% ==================================
+
+% =================================
 % Linearised state space
-%===================================================
-
-% % Symbolic variables
-% syms u w pitch q collect longit labi c real
-% 
-% % !! PARAMETERS !!
-% % mu and lambda_c
-% qdiml=q/omega;
-% vdiml=sqrt(u^2+w^2)/vtip;
-% phi=atan(w/u);
-% vv_sym = sqrt(u^2 + w^2);
-% alfc=longit-phi;
-% mu=vdiml*cos(alfc); %Vcos(alphac)/omega*R
-% labc=vdiml*sin(alfc); %Vsin(alphac)/omega*R
-% 
-% ctelem=cla*volh/4*(2/3*collect*(1+1.5*mu^2)-(labc+labi));
-% labidot=ctelem; 
-% thrust=labidot*rho*vtip^2*area;
-% stap = 0.01;
-% 
-% %a1 Flapping calculi
-% teller=-16/lok*qdiml+8/3*mu*collect-2*mu*(labc+labi);
-% a1=teller/(1-.5*mu^2);
-% 
-% %Thrust coefficient from Glauert
-% alfd=alfc-a1; % alpha_d
-% ctglau=2*labi*sqrt((vdiml*cos(alfd))^2+(vdiml*sin(alfd)+labi)^2);
-% 
-% helling=longit-a1;
-% vv=vdiml*vtip; %it is 1/sqrt(u^2+w^2)
-% 
-% % State vector including labi
-% x_sym = [u; w; pitch; q; labi; c];  % Including labi as a state
-% inputs = [collect; longit];
-% % Symbolic non-linear dynamics
-% udot_sym     = -g*sin(pitch) - cds/mass * 0.5*rho*u*vv + thrust/mass*sin(helling) - q*w;
-% wdot_sym     =  g*cos(pitch) - cds/mass * 0.5*rho*w*vv - thrust/mass*cos(helling) + q*u;
-% pitchdot_sym = q;
-% qdot_sym     = -thrust*mast/iy * sin(helling);
-% labi_dot_sym = (ctelem - ctglau) / tau;  % Dynamics for labi
-% corrdot=cdes0-c;
-
+%==================================
 
 %% Linearize non linear system equations
-syms u w q theta_f lambda_i theta_0 theta_c
+syms u w q theta_f labi collect0 longit0
 
 V = sqrt(u^2 + w^2);
-alpha_c = theta_c - atan(w/u); % not sure about this
+alpha_c = longit0 - atan(w/u); 
 mu = V/(omega*R)*cos(alpha_c);
-lambda_c = V*sin(alpha_c)/(omega*R);
-a1 = (8/3*mu*theta_0 - 2*mu*(lambda_c + lambda_i)-16/lok*q/omega)/(1-1/2*mu^2);
-C_Tglau = 2*lambda_i*sqrt((V/(omega*R)*cos(alpha_c-a1))^2+(V/(omega*omega)*sin(alpha_c-a1)+lambda_i)^2);
-C_TBEM = 1/4*cla*volh*(2/3*theta_0*(1+3/2*mu^2)-(lambda_c+lambda_i));
-T = C_TBEM*rho*(omega*omega)^2*pi*omega^2;
+labc = V*sin(alpha_c)/(omega*R);
+%teller(i)=-16/lok*qdiml(i)+8/3*mu(i)*collect(i)-2*mu(i)*(labc(i)+labi(i));
+%a1(i)=teller(i)/(1-.5*mu(i)^2);
+a1 = (8/3*mu*collect0 - 2*mu*(labc + labi)-16/lok*q/omega)/(1-0.5*mu^2);
+
+% ctglau(i)=2*labi(i)*sqrt((vdiml(i)*cos(alfd(i)))^2+(vdiml(i)*sin(alfd(i))+labi(i))^2);
+% ctelem(i)=cla*volh/4*(2/3*collect(i)*(1+1.5*mu(i)^2)-(labc(i)+labi(i)));
+ctglau = 2*labi*sqrt((V/(omega*R)*cos(alpha_c-a1))^2+(V/(omega*R)*sin(alpha_c-a1)+labi)^2);
+ctel = 1/4*cla*volh*(2/3*collect0*(1+3/2*mu^2)-(labc+labi));
+
+%labidot(i)*rho*vtip^2*area;
+T = ctel*rho*(omega*R)^2*pi*R^2;
+
+%D = 0.5*rho*(V_tot(i)^2)*cds*S;
 D = Cdf*1/2*rho*V^2*S;
 
-X = T/mass*sin(theta_c-a1)-D/mass*u/V-g*sin(pitch0);
-dX = jacobian(X, [u, w, q, theta_f, lambda_i, theta_0, theta_c]);
-dX_new = double(subs(dX, [u, w, q, theta_f, lambda_i, theta_0, theta_c], ...
-    [u0, w0, q0, pitch0, labi0, collect0, longit0]));
+% Derivatives for the matrix 
+X = (T/mass)*sin(longit0-a1)-(D/mass)*(u/V)-g*sin(pitch0);
+dX = jacobian(X, [u, w, theta_f, q, labi, collect0, longit0]);
+dX_x = double(subs(dX, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
-Z = -T/mass*cos(theta_c-a1)-D/mass*w/V+g*cos(pitch0);
-dZ = jacobian(Z, [u, w, q, theta_f, lambda_i, theta_0, theta_c]);
-dZ_new = double(subs(dZ, [u, w, q, theta_f, lambda_i, theta_0, theta_c], ...
-    [u0, w0, q0, pitch0, labi0, collect0, longit0]));
+Z = -(T/mass)*cos(longit0-a1)-D/mass*w/V+g*cos(pitch0);
+dZ = jacobian(Z, [u, w, theta_f, q, labi, collect0, longit0]);
+dZ_x = double(subs(dZ, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
-M = -T/iy*mast*sin(theta_c-a1);
-dM = jacobian(M, [u, w, q, theta_f, lambda_i, theta_0, theta_c]);
-dM_new = double(subs(dM, [u, w, q, theta_f, lambda_i, theta_0, theta_c], ...
-    [u0, w0, q0, pitch0, labi0, collect0, longit0]));
+M = -(T/iy)*mast*sin(longit0-a1);
+dM = jacobian(M, [u, w, theta_f, q, labi, collect0, longit0]);
+dM_x = double(subs(dM, [u, w, theta_f, q, labi, collect0, longit0], [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
 tau = 0.1;
-Lambda = 1/tau*(C_TBEM-C_Tglau)/(omega*omega);
-dLambda = jacobian(Lambda, [u, w, q, theta_f, lambda_i, theta_0, theta_c]);
-dLambda_new = double(subs(dLambda, [u, w, q, theta_f, lambda_i, theta_0, theta_c], ...
-    [u0, w0, q0, pitch0, labi0, collect0, longit0]));
+Lambda = 1/tau*(ctel-ctglau)/(omega*R);
+dLamb = jacobian(Lambda, [u, w, theta_f, q, labi, collect0, longit0]);
+dLamb_new = double(subs(dLamb, [u, w, q, theta_f, labi, collect0, longit0], ...
+    [u0, w0, pitch0, q0, labi0, collect_0, longit_0]));
 
 %% Linear system
-A = [dX_new(1) dX_new(2) (dX_new(3)-w0) (dX_new(4)) dX_new(5);
-    dZ_new(1) dZ_new(2) (dZ_new(3)+u0) (dZ_new(4)) dZ_new(5);
-    dM_new(1) dM_new(2) dM_new(3) dM_new(4) dM_new(5);
-    0 0 1 0 0;
-    dLambda_new(1) dLambda_new(2) dLambda_new(3) dLambda_new(4) dLambda_new(5)];
-B = [dX_new(6) dX_new(7);
-    dZ_new(6) dZ_new(7);
-    dM_new(6) dM_new(7);
-    0 0; 
-    dLambda_new(6) dLambda_new(7)];
+A = [dX_x(1) dX_x(2) (dX_x(3)) (dX_x(4)-w0) dX_x(5);
+    dZ_x(1) dZ_x(2) (dZ_x(3)) (dZ_x(4)+u0) dZ_x(5); 
+    0 0 0 1 0;
+    dM_x(1) dM_x(2) dM_x(3) dM_x(4) dM_x(5);
+    dLamb_new(1) dLamb_new(2) dLamb_new(3) dLamb_new(4) dLamb_new(5)];
+
+B = [dX_x(6) dX_x(7);
+    dZ_x(6) dZ_x(7);
+    0 0;
+    dM_x(6) dM_x(7)
+    dLamb_new(6), dLamb_new(7)];
+
+disp("X_u");
+disp(dX_x(1));
+Xu = dX_x(1);
+disp(" ");
+disp("M_u");
+disp(dM_x(1));
+Mu = dM_x(1);
+disp(" ");
+disp("M_q");
+disp(dM_x(4));
+Mq = dM_x(4);
+
 C = eye(5,5);
 mdl = ss(A,B,C,0);
 
-% Output matrix to select pitch rate (q = 4th state)
-C_q = [0 0 0 1 0];
+% eigs(A);
+% disp(eigs(A));
 
-% D matrix for SISO system (just one output and one input)
-D_q = 0;
+%% Verifying linear model
+t_end = 50;
 
-% Create SISO system: cyclic input → pitch rate
-sys_q = ss(A, B(:,2), C_q, D_q);
+t = linspace(0,t_end, t_end/0.1+1);
+u = [ones(1,10)*1*pi/180, zeros(1,length(t)-10); zeros(1,length(t))];
+y = lsim(mdl, u, t);
 
 figure;
-K =64.5;
-rlocus(-K*sys_q);
-% %% Verifying linear model
-% t_end = 50;
-% t = linspace(0,t_end, t_end/0.1+1);
-% u = [ones(1,10)*1*pi/180, zeros(1,length(t)-10); zeros(1,length(t))];
-% y = lsim(mdl, u, t);
-% 
-% t = linspace(0,t_end, t_end/0.1+1);
-% u = [ones(1,10)*1*pi/180, zeros(1,length(t)-10); zeros(1,length(t))];
-% y = lsim(mdl, u, t);
-% 
-% figure;
-% subplot(2, 3, 1);
-% plot(t, y(:, 1));
-% legend('u')
-% 
-% subplot(2, 3, 2);
-% plot(t, y(:, 2));
-% legend('w')
-% 
-% subplot(2, 3, 3);
-% plot(t, y(:, 3)*180/pi);
-% legend('q [deg/s]')
-% 
-% subplot(2, 3, 4);
-% plot(t, y(:, 4)*180/pi);
-% legend('Pitch [deg]')
-% 
-% subplot(2, 3, 5);
-% plot(t, y(:, 5));
-% legend('labi')
+subplot(2, 3, 1);
+plot(t, y(:, 1));
+legend('u')
 
+subplot(2, 3, 2);
+plot(t, y(:, 2));
+legend('w')
 
-%----------------------------------------------------------------------OLD
-% % Dynamics vector including labi_dot
-% f = [udot_sym; wdot_sym; pitchdot_sym; qdot_sym; labi_dot_sym; corrdot];  % Updated dynamics with labi
-% 
-% % Jacobians
-% A_sym = jacobian(x_sym, x_sym);  % Jacobian with respect to x including labi
-% B_sym = jacobian(inputs, [collect; longit]);  % Jacobian with respect to inputs (collective, longitudinal cyclic)
-% 
-% % Trim values (substitution list)
-% subs_list = [u; w; pitch; q; collect; longit; labi; c];  % Include labi in the substitution list
-% vals_list = [u0; w0; pitch0; q0; collect0; longit0; labi0; c0];  % Trim values including labi
-% 
-% % Substitute trim values into the Jacobians
-% A_lin = double(subs(A_sym, subs_list, vals_list));  % Linearized A matrix with labi
-% B_lin = double(subs(B_sym, subs_list, vals_list));  % Linearized B matrix with labi
-% 
-% % Output matrices
-% C = eye(6);
-% D = zeros(6,2);
+subplot(2, 3, 3);
+plot(t, y(:, 3)*180/pi);
+legend('q [deg/s]')
 
+subplot(2, 3, 4);
+plot(t, y(:, 4)*180/pi);
+legend('Pitch [deg]')
+
+subplot(2, 3, 5);
+plot(t, y(:, 5)*180/pi);
+legend('Pitch [deg]')
+
+%---------------------------------------------------
+syms lamb_i
+lamb_i = vpasolve(lamb_i*(lamb_i - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
+
+disp("Eigenvalues:")
+disp(lamb_i(1))
+disp(lamb_i(2))
+disp(lamb_i(3))
+
+disp("Frequency:")
+wn1 = abs(lamb_i(1));
+wn2 = abs(lamb_i(2));
+wn3 = abs(lamb_i(3));
+disp(wn1)
+disp(wn2)
+disp(wn3)
+
+disp("Damping coeffs:")
+disp(-real(lamb_i(1))/wn1)
+disp(-real(lamb_i(2))/wn2)
+disp(-real(lamb_i(3))/wn3)
 
 

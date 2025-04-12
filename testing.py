@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Question_12_Forward import vi_BEM, Fuselage_drag_coeff
 from Question_12_13_Hover import induced_hover
+#--------------------------------------------------------------
+#CONVENTION 
+# Counterclockwise positive 
+# Cyclic is positive downwards and to the right 
+#--------------------------------------------------------------
 
 def flap_angle(a0, a1, b1, psi):
 
@@ -12,12 +17,12 @@ def flap_angle(a0, a1, b1, psi):
   
     return beta, dbeta
 
-def AOA(pitch, lambda_i, dbeta, r, omega, q, p, psi):
+def AOA(pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi):
 
     # Angle of attack calculation
-    den = r
+    den = r+mu*np.sin(psi)
 
-    num = -(lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + (p/omega)*r*np.sin(psi))
+    num = (lambda_c + lambda_i - (dbeta*r)/omega + (q/omega)*r*np.cos(psi) - mu*np.sin(beta)*np.cos(psi) - (p/omega)*r*np.sin(psi))
 
     alpha = pitch - num/den
     return alpha 
@@ -25,12 +30,11 @@ def AOA(pitch, lambda_i, dbeta, r, omega, q, p, psi):
 #-------------------------- QUESTION 2 Graphs -------------------------
 flap_graph = True
 
-twisty = True # True for twisty blade, False for straight blade
-
+AOA_graph = True
 #-------------------------- QUESTION 2 Flapping -------------------------
 # STANDARD PARAMETERS
 rho = 1.225  # Density at sea level (kg/m^3)
-cla = 2*np.pi  # lift curve slope [1/deg]
+cla = 2*np.pi  # lift curve slope [1/rad]
 g = 9.81 # m/s^2 gravitational acceleration
 mass = 4536 # kg mass of the helicopter MTOW
 W = mass * g # N helicopter weight
@@ -40,7 +44,6 @@ c = 0.76 # m chord length
 rotor_RPM = 324 
 rotor_speed = rotor_RPM * 2 * np.pi/60  # rad/s angular rotor speed
 N = 2 # Number of blades
-t =  0.097 # m blade thickness
 
 # Moment of Inertia (Iy)
 h_blade_max = 0.097 # maximum thickness of the blade % of chord
@@ -73,34 +76,36 @@ lok = rho * cla * c * (R**4) / iy  # Lock number
 gamma = lok # Lock number
 collect = 6*np.pi / 180 # Collective pitch (radians)
 longcyc = 0*np.pi / 180  # Longitudinal cyclic (radians)
-latcyc = 0*np.pi / 180  # Lateral cyclic (radians)
+latcyc = 1*np.pi / 180  # Lateral cyclic (radians)
 V = 0 # m/s
-q = 10*np.pi/180 # rad/s
+q = 0*np.pi/180 # rad/s
 p = 0*np.pi/180 # rad/s
-
-if twisty:
-    twist = -0.175 # radians
-else: 
-    twist = 0
+alphac = longcyc # Angle of attack of the control plane 
+mu = V*np.cos(alphac)/(rotor_speed*R)
 
 _, vibar, _, _ = vi_BEM(V, rho, W, R, Cdf, S) # Normalised induced velocity
 vi = vibar[0]*induced_hover(W, rho, R) # Induced velocity in forward flight
 lambda_i = vi/(rotor_speed*R)
+lambda_c = V*np.sin(alphac)/(rotor_speed*R)
 
 # Fourier coefficients 
+K = (1.33*abs((mu/(lambda_c+lambda_i))))/(1.2 + abs((mu/(lambda_c+lambda_i))))
 
-a0 = (gamma/8)*(collect + (4/3)*(lambda_i) - (4/5)*twist) 
+ch = K*lambda_i/(1+0.5*mu**2)
 
-a1 = (16*q/(gamma*rotor_speed) + latcyc + p/rotor_speed)
+a0 = (gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) +  2*mu*p/(3*rotor_speed) - (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
 
-b1 = (-16*p/(rotor_speed*gamma) + longcyc - q/rotor_speed)
+a1 = (-16*q/(gamma*rotor_speed) + (-latcyc*(1+(3/2)*mu**2) + (8/3)*collect*mu +  2*mu*(lambda_i+lambda_c) + p/rotor_speed))/(1-(0.5*mu**2))
 
-print("Coning angle:")
-print("a0-a1: ", np.round((a0-a1)*180/np.pi,3))
-print("a0+a1: ", np.round((a0+a1)*180/np.pi, 3))
+b1 = (-16*p/(rotor_speed*gamma) + longcyc*(1 + (mu**2)/2) - q/rotor_speed + (4/3)*mu*a0)/(1+(0.5*mu**2)) 
+
+b1 = b1 + ch 
+
+print("a0: ", np.round(a0*180/np.pi,3))
+print("a1: ", np.round(a1*180/np.pi, 3))
+print("b1: ", np.round(b1*180/np.pi, 3))
 
 #-------------------------- Flapping angle -------------------------
-
 psi = np.linspace(0, 2*np.pi, 360) # radians
 
 beta_f = [] # radians
@@ -126,29 +131,30 @@ AOA_f = np.zeros((len(psi), len(r_var))) #  AOA degrees
 
 for i in np.arange(0, len(psi)): 
 
-    for r in np.arange(0, len(r_var)):
+    # Pitch angle 
+    pitch = collect - longcyc*np.cos(psi[i]) - latcyc*np.sin(psi[i])
 
-        if r_var[r] <= 1.3:
+    for r in np.arange(0, len(r_var)):
+        if r_var[r] <= 1.2 :
             AOA_f[i, r] = np.NaN 
+        # elif r_var[r] <= 0.5:
+        #     AOA_f[i, r] = np.NaN
         else:
             #pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi
-                # Pitch angle 
 
-            #(pitch, lambda_i, dbeta, r, omega, q, p, psi)
-            pitch = collect + longcyc*np.cos(psi[i]) - latcyc*np.sin(psi[i]) - twist*(r_var[r]/R)
-            AOA1 = AOA(pitch, lambda_i, dbeta_f[i], r_var[r]/R, rotor_speed, q, p, psi[i])
+            AOA1 = AOA(pitch, lambda_c, lambda_i, dbeta_f[i], r_var[r]/R, rotor_speed, q, p, mu, beta_f[i], psi[i])
             
             AOA_f[i, r] = AOA1*180/np.pi 
 
-fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 8))
+if AOA_graph:
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
 
-# colours : magma, viridis, plasma, inferno, cividis
+    # colours : magma, viridis, plasma, inferno, cividis
+    contour = ax.contourf(psi, r_var, AOA_f.T, levels=20, cmap='plasma')
 
-contour = ax.contourf(psi, r_var, AOA_f.T, levels=30, cmap='plasma')
+    fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
+    ax.set_title('Contours of Constant Angle of Attack')
 
-fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
-ax.set_title('Contours of Constant Angle of Attack')
+    ax.set_theta_zero_location('S')
 
-ax.set_theta_zero_location('S')
-
-plt.show()
+    plt.show()
