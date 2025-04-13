@@ -122,35 +122,47 @@ t = linspace(0,t_end, t_end/0.1+1);
 u = [ones(1,10)*1*pi/180, zeros(1,length(t)-10); zeros(1,length(t))];
 y = lsim(mdl, u, t);
 
-figure;
-subplot(2, 3, 1);
-plot(t, y(:, 1));
-legend('u')
-
-subplot(2, 3, 2);
-plot(t, y(:, 2));
-legend('w')
-
-subplot(2, 3, 3);
-plot(t, y(:, 3)*180/pi);
-legend('q [deg/s]')
-
-subplot(2, 3, 4);
-plot(t, y(:, 4)*180/pi);
-legend('Pitch [deg]')
-
-subplot(2, 3, 5);
-plot(t, y(:, 5)*180/pi);
-legend('Pitch [deg]')
+% figure;
+% subplot(2, 3, 1);
+% plot(t, y(:, 1), 'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('u (m/s)');
+% legend('u')
+% 
+% subplot(2, 3, 2);
+% plot(t, y(:, 2),'Color',  [0.4, 0, 0.6]), xlabel('Time (s)'),ylabel('w (m/s)');
+% legend('w')
+% 
+% subplot(2, 3, 3);
+% plot(t, y(:, 3)*180/pi,'Color',  [0.4, 0, 0.6]), xlabel('Time (s)'),ylabel('q (deg/s)');
+% legend('q [deg/s]')
+% 
+% subplot(2, 3, 4);
+% plot(t, y(:, 4)*180/pi,'Color',  [0.4, 0, 0.6]), xlabel('Time (s)'),ylabel('Pitch (deg)');
+% legend('Pitch [deg]')
+% 
+% subplot(2, 3, 5);
+% plot(t, y(:, 5)*180/pi, 'Color',  [0.4, 0, 0.6]), xlabel('Time (s)'),ylabel('Lambda (-)'), pause;
+% legend('Lambda [-]')
 % 
 % %---------------------------------------------------
-% syms lamb_i
-% lamb_i = vpasolve(lamb_i*(lamb_i - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
-% 
-% disp("Eigenvalues:")
-% disp(lamb_i(1))
-% disp(lamb_i(2))
-% disp(lamb_i(3))
+syms lamb_i
+lamb_i = vpasolve(lamb_i*(lamb_i - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
+
+disp("Eigenvalues:")
+disp(lamb_i(1))
+disp(lamb_i(2))
+disp(lamb_i(3))
+
+figure;
+plot(real(lamb_i), imag(lamb_i), 'x', 'MarkerSize', 10, 'LineWidth', 2, 'Color',  [0.4, 0, 0.6]);
+xlabel('Real Axis');
+ylabel('Imaginary Axis');
+xline(0, '--k');
+yline(0, '--k');
+grid on;
+axis equal;
+xlim([-0.2, 0.1]);
+ylim([-0.15, 0.15]);
+
 % 
 % disp("Frequency:")
 % wn1 = abs(lamb_i(1));

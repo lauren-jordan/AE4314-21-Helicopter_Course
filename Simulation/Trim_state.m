@@ -50,10 +50,10 @@ for i = 1:num_V
 end
 % Plot results
 figure;
-plot(V, a1*180/pi, 'r', 'LineWidth', 1.5); hold on;
-plot(V, theta0*180/pi, 'b', 'LineWidth', 1.5);
+plot(V, a1*180/pi, 'black', 'LineWidth', 1.5); hold on;
+plot(V, theta0*180/pi,'Color',  [0.7, 0.6, 0.9], 'LineWidth', 1.5);
 grid on;
 legend('Cyclic input', 'Collective input');
 xlabel('Velocity (m/s)');
 ylabel('Pitch Angle (°)');
-title('Cyclic and Collective Pitch vs Velocity');
+%title('Cyclic and Collective Pitch vs Velocity');

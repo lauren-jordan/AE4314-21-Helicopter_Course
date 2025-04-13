@@ -227,26 +227,26 @@ end;
 
 figure;
 subplot(2, 2, 1);
-plot(t,pitch*180/pi),xlabel('Time (s)'),ylabel('Pitch (deg)'),grid;
+plot(t,pitch*180/pi, 'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('Pitch (deg)'), grid;
 subplot(2, 2, 2);
-plot(t,q*180/pi),xlabel('Time (s)'),ylabel('Pitch rate q (deg/s)'),grid;
+plot(t,q*180/pi,'Color',  [0.4, 0, 0.6]) ,xlabel('Time (s)'),ylabel('Pitch rate q (deg/s)'),grid;
 subplot(2, 2, 3);
-plot(t,z),xlabel('Time (s)'),ylabel('Altitude (m)'),grid;
+plot(t,z,'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('Altitude (m)'),grid;
 subplot(2, 2, 4);
-plot(t,c),xlabel('Time (s)'),ylabel('Vertical Velocity c (m/s)'),grid, pause;
+plot(t,c,'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('Vertical Velocity c (m/s)'), grid, pause;
 
 figure;
 subplot(1, 2, 1);
-plot(t(1:aantal),collect*180/pi),xlabel('Time (s)'),ylabel('Collective Input (deg)'),grid;
+plot(t(1:aantal),collect*180/pi,'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('Collective Input (deg)'),grid;
 subplot(1, 2, 2);
-plot(t(1:aantal),longit*180/pi),xlabel('Time (s)'),ylabel('Cyclic input (deg)'),grid,pause;
+plot(t(1:aantal),longit*180/pi,'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('Cyclic input (deg)'),grid,pause;
 % 
 figure;
 subplot(1, 3, 1);
-plot(t, u),xlabel('Time (s)'),ylabel('u (m/s)'),grid;
+plot(t, u,'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('u (m/s)'),grid;
 subplot(1, 3, 2);
-plot(t, w),xlabel('Time (s)'),ylabel('w (m/s)'),grid;
+plot(t, w,'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('w (m/s)'),grid;
 subplot(1, 3, 3);
-plot(t, V_tot),xlabel('Time (s)'),ylabel('Total airspeed V (m/s)'),grid, pause;
+plot(t, V_tot,'Color',  [0.4, 0, 0.6]),xlabel('Time (s)'),ylabel('Total airspeed V (m/s)'),grid, pause;
 
 
