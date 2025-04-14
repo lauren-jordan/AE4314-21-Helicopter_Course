@@ -17,7 +17,7 @@ def AOA(pitch, lambda_i, dbeta, r, omega, q, p, psi):
     # Angle of attack calculation
     den = r
 
-    num = -(lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + (p/omega)*r*np.sin(psi))
+    num = (lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) - (p/omega)*r*np.sin(psi))
 
     alpha = pitch - num/den
     return alpha 
@@ -25,8 +25,7 @@ def AOA(pitch, lambda_i, dbeta, r, omega, q, p, psi):
 #-------------------------- QUESTION 2 Graphs -------------------------
 flap_graph = True
 
-twisty = True # True for twisty blade, False for straight blade
-
+twisty = False # True for twisty blade, False for straight blade
 #-------------------------- QUESTION 2 Flapping -------------------------
 # STANDARD PARAMETERS
 rho = 1.225  # Density at sea level (kg/m^3)
@@ -72,11 +71,11 @@ lok = rho * cla * c * (R**4) / iy  # Lock number
 #-------------------------- Flapping characteristics -------------------------
 gamma = lok # Lock number
 collect = 6*np.pi / 180 # Collective pitch (radians)
-longcyc = 0*np.pi / 180  # Longitudinal cyclic (radians)
-latcyc = 0*np.pi / 180  # Lateral cyclic (radians)
+longcyc = 2*np.pi / 180  # Longitudinal cyclic (radians)
+latcyc = 1*np.pi / 180  # Lateral cyclic (radians)
 V = 0 # m/s
-q = 10*np.pi/180 # rad/s
-p = 0*np.pi/180 # rad/s
+q = 20*np.pi/180 # rad/s
+p = 10*np.pi/180 # rad/s
 
 if twisty:
     twist = -0.175 # radians
@@ -88,12 +87,11 @@ vi = vibar[0]*induced_hover(W, rho, R) # Induced velocity in forward flight
 lambda_i = vi/(rotor_speed*R)
 
 # Fourier coefficients 
+a0 = (gamma/8)*(collect - (4/3)*(lambda_i) - (4/5)*twist) 
 
-a0 = (gamma/8)*(collect + (4/3)*(lambda_i) - (4/5)*twist) 
+a1 = (-16*q/(gamma*rotor_speed) + latcyc + p/rotor_speed)
 
-a1 = (16*q/(gamma*rotor_speed) + latcyc + p/rotor_speed)
-
-b1 = (-16*p/(rotor_speed*gamma) + longcyc - q/rotor_speed)
+b1 = (-16*p/(rotor_speed*gamma) - longcyc - q/rotor_speed)
 
 print("Coning angle:")
 print("a0-a1: ", np.round((a0-a1)*180/np.pi,3))
@@ -116,7 +114,7 @@ if flap_graph:
     plt.grid()
     plt.xlabel(r"Azimuth angle $\psi [\degree]$")
     plt.ylabel(r"Flapping angle $\beta [\degree]$")
-    plt.title(r"Flapping angle $\beta$ vs Azimuth angle $\psi$")
+    #plt.title(r"Flapping angle $\beta$ vs Azimuth angle $\psi$")
     plt.show()
 
 #-------------------------- AOA -------------------------
@@ -144,10 +142,10 @@ fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 8))
 
 # colours : magma, viridis, plasma, inferno, cividis
 
-contour = ax.contourf(psi, r_var, AOA_f.T, levels=30, cmap='plasma')
+contour = ax.contourf(psi, r_var, AOA_f.T, levels=30, cmap='magma')
 
 fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
-ax.set_title('Contours of Constant Angle of Attack')
+#ax.set_title('Contours of Constant Angle of Attack')
 
 ax.set_theta_zero_location('S')
 

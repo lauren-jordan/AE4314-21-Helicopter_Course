@@ -99,14 +99,6 @@ disp(" ");
 disp("M_q");
 disp(dM_x(4));
 Mq = dM_x(4);
-disp(" ");
-disp("M_w");
-disp(dM_x(2));
-Mw = dM_x(2);
-disp(" ");
-disp("Z_w");
-disp(dZ_x(2));
-Zw = dZ_x(2);
 
 C = eye(5,5);
 mdl = ss(A,B,C,0);
@@ -149,7 +141,6 @@ mdl = ss(A,B,C,0);
 syms lamb_i
 lamb_i = vpasolve(lamb_i*(lamb_i - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
 
-disp(" PHUGOID ")
 disp("Eigenvalues:")
 disp(lamb_i(1))
 disp(lamb_i(2))
@@ -167,28 +158,27 @@ disp("Damping coeffs:")
 disp(-real(lamb_i(1))/wn1)
 disp(-real(lamb_i(2))/wn2)
 disp(-real(lamb_i(3))/wn3)
-disp(" ")
-%% SHORT PERIOD
-syms lamb_sp 
-lamb_sp = vpasolve(lamb_sp^2 - (Zw+Mq)*lamb_sp + Zw*Mq - Mw*u0 == 0);
 
-disp(" SHORT PERIOD ")
+syms lamb_sp 
+lamb_sp = vpasolve(lamb_sp*(lamb_sp - Xu)*(lamb_i - Mq) * 1/Mu +g == 0);
+
 disp("Eigenvalues:")
 disp(lamb_sp(1))
 disp(lamb_sp(2))
-
+disp(lamb_sp(3))
 
 disp("Frequency:")
 wn1sp = abs(lamb_sp(1));
 wn2sp = abs(lamb_sp(2));
-
+wn3sp = abs(lamb_sp(3));
 disp(wn1sp)
 disp(wn2sp)
+disp(wn3sp)
 
 disp("Damping coeffs:")
 disp(-real(lamb_sp(1))/wn1)
 disp(-real(lamb_sp(2))/wn2)
-
+disp(-real(lamb_sp(3))/wn3)
 
 % figure;
 % plot(real(lamb_i), imag(lamb_i), 'x', 'MarkerSize', 10, 'LineWidth', 2, 'Color',  [0.4, 0, 0.6]);

@@ -15,14 +15,12 @@ def flap_angle(a0, a1, b1, psi):
     dbeta = a1*np.sin(psi) - b1*np.cos(psi)
     ddbeta = a1*np.cos(psi) + b1*np.sin(psi)
   
-    return beta, dbeta
+    return beta, dbeta, ddbeta
 
 def AOA(pitch, lambda_c, lambda_i, dbeta, r, omega, q, p, mu, beta, psi):
-
     # Angle of attack calculation
     den = r+mu*np.sin(psi)
-
-    num = -(lambda_c + lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + mu*np.sin(beta)*np.cos(psi) + (p/omega)*r*np.sin(psi))
+    num = (lambda_c + lambda_i + (dbeta*r)/omega - (q/omega)*r*np.cos(psi) + mu*np.sin(beta)*np.cos(psi) - (p/omega)*r*np.sin(psi))
 
     alpha = pitch - num/den
     return alpha 
@@ -80,7 +78,7 @@ latcyc = 1*np.pi / 180  # Lateral cyclic (radians)
 V = 20 # m/s
 q = 20*np.pi/180 # rad/s
 p = 10*np.pi/180 # rad/s
-alphac = longcyc # Angle of attack of the control plane 
+alphac = 2*np.pi/180 # Angle of attack of the control plane 
 mu = V*np.cos(alphac)/(rotor_speed*R)
 
 _, vibar, _, _ = vi_BEM(V, rho, W, R, Cdf, S) # Normalised induced velocity
@@ -93,13 +91,13 @@ K = (1.33*abs((mu/(lambda_c+lambda_i))))/(1.2 + abs((mu/(lambda_c+lambda_i))))
 
 ch = K*lambda_i/(1+0.5*mu**2)
 
-a0 = (gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) +  2*mu*p/(3*rotor_speed) + (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
+a0 = (gamma/8)*(collect*(1+mu**2) - (4/3)*(lambda_i+lambda_c) + 2*mu*p/(3*rotor_speed) + (4/3)*(mu*latcyc)) #(gamma/8)*(collect*(1+mu**2) + (4/3)*(lambda_i+lambda_c) - (4/3)*(mu*latcyc)) - mu*p/(6*rotor_speed)
 
-a1 = (16*q/(gamma*rotor_speed) + (latcyc*(1+mu**2) + (8/3)*collect*mu +  2*mu*(lambda_i+lambda_c) + p/rotor_speed))/(1-(0.5*mu**2))
+a1 = (-16*q/(gamma*rotor_speed) + latcyc*(1+(mu**2)) + 8*collect*mu/3 - 2*mu*(lambda_i+lambda_c) + p/rotor_speed)/(1-(mu**2)/2)#((-16*q/(gamma*rotor_speed))+(-latcyc*(1+(3/2)*mu**2) \+ 8*collect*mu/3 + 2*mu*(lambda_i+lambda_c) - p/rotor_speed))/(1-((mu**2)/2))
 
-b1 = (-16*p/(rotor_speed*gamma) + longcyc*(1 + (mu**2)) - q/rotor_speed - (4/3)*mu*a0)/(1+(0.5*mu**2)) 
+b1 = (-16*p/(rotor_speed*gamma) - longcyc*(1 + (mu**2)) - q/rotor_speed + (4/3)*mu*a0)/(1+(mu**2)/2) #(-16*p/(rotor_speed*gamma) + (longcyc*(1 + (1/2)*mu**2) + q/rotor_speed) + (4/3)*mu*a0)/(1+((mu**2)/2))
 
-b1 = b1 + ch 
+b1 = b1 + ch
 
 print("a0: ", np.round(a0*180/np.pi,3))
 print("a1: ", np.round(a1*180/np.pi, 3))
@@ -110,14 +108,17 @@ psi = np.linspace(0, 2*np.pi, 360) # radians
 
 beta_f = [] # radians
 dbeta_f = [] # radians
+ddbeta_f = [] # radians
 for i in np.arange(0, len(psi)): 
     # gamma, collect, mu, lambda_i, lambda_c, p, q, rotor_speed, longcyc, latcyc, psi 
-    beta, dbeta = flap_angle(a0, a1, b1, psi[i])
+    beta, dbeta, ddbeta = flap_angle(a0, a1, b1, psi[i])
     beta_f.append(beta)
     dbeta_f.append(dbeta)
+    ddbeta_f.append(ddbeta)
 
 if flap_graph:
     plt.plot([i*180/np.pi for i in psi], [i*180/np.pi for i in beta_f], color = "black")
+    #plt.plot([i*180/np.pi for i in psi], [i*180/np.pi for i in ddbeta_f], color = "blue")
     plt.grid()
     plt.xlabel(r"Azimuth angle $\psi [\degree]$")
     plt.ylabel(r"Flapping angle $\beta [\degree]$")
@@ -150,7 +151,7 @@ if AOA_graph:
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
 
     # colours : magma, viridis, plasma, inferno, cividis
-    contour = ax.contourf(psi, r_var, AOA_f.T, levels=10, cmap='plasma')
+    contour = ax.contour(psi, r_var, AOA_f.T, levels=50, cmap='plasma')
 
     fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
     #ax.set_title('Contours of Constant Angle of Attack')

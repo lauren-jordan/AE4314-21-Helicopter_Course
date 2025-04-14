@@ -110,7 +110,7 @@ if graph == True:
     ax.plot(Vbar, vi_90, color = '#FF69B4', label = r'Low-speed flight $\frac{1}{\bar{V} + \bar{v_{i}}}$', linestyle = '-.')
     ax.set_xlabel(r"$\bar{V}$ [m/s]")
     ax.set_ylabel(r"$\bar{v_{i}}$ [m/s]")
-    ax.set_title("Induced Velocity vs Forward Flight Velocity")
+    #ax.set_title("Induced Velocity vs Forward Flight Velocity")
     ax.set_ylim(0, 1.0)
     ax.grid()
     ax.legend()

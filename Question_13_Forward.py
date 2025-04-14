@@ -91,7 +91,7 @@ for i in np.arange(0, len(V)):
     vit = induced_hover(T, rho0, Rt)
 
     # Tail rotor power
-    P_tail = tailrotor_power(kt, T, vit, rho0, Rt, sigmat, CDf, rotor_speed_t, mut)
+    P_tail = tailrotor_power(kt, T, vit, rho0, Rt, sigmat, Cdf, rotor_speed_t, mut)
 
     # Total power
     P_tot.append((P_rotor+P_tail)/10**6) 
