@@ -132,7 +132,7 @@ for i = 1:aantal
        K5 = 0.01;
        K6 = -0.75;
        cdes = K6*(hdes - (z(i)));
-       collect(i)= collect(1) + K4*(cdes - c(i)) + K5*int_errorc(i);
+       collect(i) = collect(1) + K4*(cdes - c(i)) + K5*int_errorc(i);
 
    end   
  
@@ -209,7 +209,7 @@ for i = 1:aantal
     zdot(i)=-c(i);
 
     % Change in lambda_i
-    labidot(i)=(ctelem(i)-ctglau(i))/tau;
+    labidot(i)=(ctelem(i)-ctglau(i))/(omega*diam/2*tau);
     labi(i+1)=labi(i) +stap*labidot(i);
     u(i+1)=u(i) + stap*udot(i);
     w(i+1)=w(i) + stap*wdot(i);

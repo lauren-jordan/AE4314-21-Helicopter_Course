@@ -69,7 +69,6 @@ volh = N * c / (np.pi * R)  # Solidity ratio
 
 # Lock number (Gamma)
 lok = rho * cla * c * (R**4) / iy  # Lock number
-
 #-------------------------- Flapping characteristics -------------------------
 gamma = lok # Lock number
 collect = 6*np.pi / 180 # Collective pitch (radians)
@@ -151,7 +150,7 @@ if AOA_graph:
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
 
     # colours : magma, viridis, plasma, inferno, cividis
-    contour = ax.contour(psi, r_var, AOA_f.T, levels=50, cmap='plasma')
+    contour = ax.contourf(psi, r_var, AOA_f.T, levels=10, cmap='plasma')
 
     fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
     #ax.set_title('Contours of Constant Angle of Attack')

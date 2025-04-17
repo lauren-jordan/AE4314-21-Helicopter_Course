@@ -23,9 +23,9 @@ def AOA(pitch, lambda_i, dbeta, r, omega, q, p, psi):
     return alpha 
 
 #-------------------------- QUESTION 2 Graphs -------------------------
-flap_graph = True
+flap_graph = False
 
-twisty = False # True for twisty blade, False for straight blade
+twisty = True # True for twisty blade, False for straight blade
 #-------------------------- QUESTION 2 Flapping -------------------------
 # STANDARD PARAMETERS
 rho = 1.225  # Density at sea level (kg/m^3)
@@ -78,7 +78,7 @@ q = 20*np.pi/180 # rad/s
 p = 10*np.pi/180 # rad/s
 
 if twisty:
-    twist = -0.175 # radians
+    twist = -0.175/R # radians
 else: 
     twist = 0
 
@@ -96,8 +96,11 @@ b1 = (-16*p/(rotor_speed*gamma) - longcyc - q/rotor_speed)
 print("Coning angle:")
 print("a0-a1: ", np.round((a0-a1)*180/np.pi,3))
 print("a0+a1: ", np.round((a0+a1)*180/np.pi, 3))
-
+print("ao", np.round(a0*180/np.pi,3))
+print("a1", np.round(a1*180/np.pi, 3))
+print("b1", np.round(b1*180/np.pi, 3))
 #-------------------------- Flapping angle -------------------------
+
 
 psi = np.linspace(0, 2*np.pi, 360) # radians
 
@@ -142,7 +145,7 @@ fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 8))
 
 # colours : magma, viridis, plasma, inferno, cividis
 
-contour = ax.contourf(psi, r_var, AOA_f.T, levels=30, cmap='magma')
+contour = ax.contourf(psi, r_var, AOA_f.T, levels=50, cmap='magma')
 
 fig.colorbar(contour, ax=ax, label="Angle of Attack (°)")
 #ax.set_title('Contours of Constant Angle of Attack')

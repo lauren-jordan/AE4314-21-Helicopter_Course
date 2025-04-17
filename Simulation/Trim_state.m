@@ -49,6 +49,7 @@ for i = 1:num_V
     [a1(i), theta0(i)] = compute_pitch(V(i), rotor_speed, R, rho, S, Cdf, W, cla, sigma);
 end
 % Plot results
+
 figure;
 plot(V, a1*180/pi, 'black', 'LineWidth', 1.5); hold on;
 plot(V, theta0*180/pi,'Color',  [0.7, 0.6, 0.9], 'LineWidth', 1.5);
